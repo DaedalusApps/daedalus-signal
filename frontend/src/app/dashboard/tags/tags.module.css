@@ -1,0 +1,109 @@
+.section {
+    margin-bottom: 2rem;
+}
+
+.section h2 {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.sectionDesc {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.empty {
+    color: var(--text-muted);
+    padding: 2rem;
+    text-align: center;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px dashed var(--border-color);
+}
+
+.addSection {
+    margin-bottom: 2rem;
+}
+
+.form {
+    display: flex;
+    gap: 1rem;
+}
+
+.form input {
+    flex: 1;
+    max-width: 400px;
+}
+
+.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    margin-top: 1rem;
+    max-width: 500px;
+}
+
+.tagGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    transition: all var(--transition-fast);
+}
+
+.tag:hover {
+    border-color: var(--border-glow);
+}
+
+.tag button {
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.tag button:hover {
+    color: #fca5a5;
+}
+
+.suggestedTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+}
+
+.suggestedTag:hover:not(:disabled) {
+    border-color: var(--accent-primary);
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--text-primary);
+}
+
+.suggestedTag:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.plus {
+    color: var(--accent-primary);
+    font-weight: bold;
+}
