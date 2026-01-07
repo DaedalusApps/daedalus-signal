@@ -109,13 +109,21 @@ python seed.py
 ### 9. Reload Web App
 Click **Reload** button in the **Web** tab.
 
-### 10. Set Up Scheduled Tasks
+### 10. Set Up Scheduled Task
 Go to **Tasks** tab and add:
 
+**For Free Tier (1 task only):**
 | Time | Command |
 |------|---------|
-| Every 6 hours (e.g., 00:00, 06:00, 12:00, 18:00) | `/home/<username>/daedalus-signal/backend/venv/bin/python /home/<username>/daedalus-signal/backend/run_scheduler.py` |
-| Daily at 08:00 | `/home/<username>/daedalus-signal/backend/venv/bin/python /home/<username>/daedalus-signal/backend/run_digest.py` |
+| Daily at 08:00 | `/home/<username>/daedalus-signal/backend/venv/bin/python /home/<username>/daedalus-signal/backend/run_tasks.py` |
+
+This combined script runs both content ingestion AND the daily digest check.
+
+**For Paid Tier (multiple tasks):**
+| Time | Command |
+|------|---------|
+| Every 6 hours | `.../venv/bin/python .../run_scheduler.py` |
+| Daily at 08:00 | `.../venv/bin/python .../run_digest.py` |
 
 ---
 
