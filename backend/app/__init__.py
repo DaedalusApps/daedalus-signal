@@ -51,4 +51,9 @@ def create_app():
     with app.app_context():
         create_admin_if_not_exists()
     
+    # Health check endpoint
+    @app.route('/api/health')
+    def health():
+        return {'status': 'healthy', 'service': 'daedalus-signal'}
+    
     return app
