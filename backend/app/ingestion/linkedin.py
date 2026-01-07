@@ -82,7 +82,7 @@ class LinkedInScraper(BaseScraper):
                             'content_type': 'post',
                             'published_at': None
                         })
-            except:
+            except Exception:
                 continue
         
         return posts

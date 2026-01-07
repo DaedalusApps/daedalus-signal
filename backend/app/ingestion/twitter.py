@@ -101,7 +101,7 @@ class TwitterScraper(BaseScraper):
                                     time_link['title'],
                                     '%b %d, %Y · %I:%M %p %Z'
                                 )
-                            except:
+                            except ValueError:
                                 pass
                     
                     tweets.append({

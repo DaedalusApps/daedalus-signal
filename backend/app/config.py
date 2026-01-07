@@ -10,7 +10,7 @@ DATA_DIR = BASE_DIR.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
 # Database
-DATABASE_URL = f"sqlite:///{DATA_DIR / 'daedalus.db'}"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR / 'daedalus.db'}")
 
 # Security
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
@@ -41,5 +41,12 @@ SMTP_FROM = os.getenv("SMTP_FROM", "noreply@daedalusapps.com")
 MAX_SOURCES_PER_USER = 10
 MAX_TAGS_PER_USER = 20
 
-# CORS
-CORS_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
+# CORS - Add your PythonAnywhere username and production domain
+CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    os.getenv("CORS_ORIGIN_1", "https://signal.daedalusapps.com"),
+    os.getenv("CORS_ORIGIN_2", ""),
+]
+# Filter out empty strings
+CORS_ORIGINS = [o for o in CORS_ORIGINS if o]

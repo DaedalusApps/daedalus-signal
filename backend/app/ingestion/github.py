@@ -89,7 +89,7 @@ class GitHubScraper(BaseScraper):
                         published_at = datetime.fromisoformat(
                             time_elem['datetime'].replace('Z', '+00:00')
                         )
-                    except:
+                    except ValueError:
                         pass
                 
                 releases.append({

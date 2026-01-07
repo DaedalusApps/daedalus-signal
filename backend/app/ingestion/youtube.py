@@ -94,7 +94,7 @@ class YouTubeScraper(BaseScraper):
                 'content_type': 'video',
                 'published_at': None  # Would need additional parsing
             }
-        except:
+        except Exception:
             return None
     
     def _parse_html_fallback(self, html: str) -> list[dict]:
