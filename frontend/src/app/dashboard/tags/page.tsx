@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import Sidebar from '@/components/Sidebar';
 import styles from '../dashboard.module.css';
 import pageStyles from './tags.module.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+
 
 interface Tag {
     id: number;
@@ -107,22 +109,7 @@ export default function TagsPage() {
 
     return (
         <div className={styles.dashboard}>
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>
-                    <span className="text-gradient">Daedalus</span>Signal
-                </div>
-                <nav className={styles.nav}>
-                    <Link href="/dashboard" className={styles.navItem}>
-                        <span>📊</span> Feed
-                    </Link>
-                    <Link href="/dashboard/sources" className={styles.navItem}>
-                        <span>🔗</span> Sources
-                    </Link>
-                    <Link href="/dashboard/tags" className={`${styles.navItem} ${styles.active}`}>
-                        <span>🏷️</span> Tags
-                    </Link>
-                </nav>
-            </aside>
+            <Sidebar activePage="tags" />
 
             <main className={styles.main}>
                 <header className={styles.header}>
@@ -169,7 +156,7 @@ export default function TagsPage() {
 
                 <section className={pageStyles.section}>
                     <h2>Suggested Tags</h2>
-                    <p className={pageStyles.sectionDesc}>Popular tags in the AI community</p>
+                    <p className={pageStyles.sectionDesc}>Popular tags in the tech community</p>
                     <div className={pageStyles.tagGrid}>
                         {defaults
                             .filter(d => !tags.find(t => t.name === d.name))

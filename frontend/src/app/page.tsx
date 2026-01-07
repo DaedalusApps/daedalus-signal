@@ -51,7 +51,7 @@ export default function Home() {
                 <div className={styles.heroContent}>
                     <div className={styles.badge}>
                         <span className={styles.badgeIcon}>✨</span>
-                        AI Intelligence Aggregator
+                        Intelligence Aggregator
                     </div>
 
                     <h1 className={styles.title}>
@@ -59,7 +59,7 @@ export default function Home() {
                     </h1>
 
                     <p className={styles.subtitle}>
-                        Cut through the noise. Surface the signal. Stay ahead of the AI frontier
+                        Cut through the noise. Surface the signal. Stay ahead of the frontier
                         with curated content from YouTube, X, LinkedIn, and GitHub.
                     </p>
 
@@ -167,7 +167,7 @@ export default function Home() {
 
             {/* Footer */}
             <footer className={styles.footer}>
-                <p>© {new Date().getFullYear()} DaedalusApps. Built for the AI community.</p>
+                <p>© {new Date().getFullYear()} DaedalusApps. Built for the tech community.</p>
                 <div className={styles.footerLinks}>
                     <Link href="/feedback">Feedback</Link>
                     <span>•</span>

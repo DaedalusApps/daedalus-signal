@@ -2,80 +2,39 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Sidebar from '@/components/Sidebar';
 import styles from './dashboard.module.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-interface Content {
-    id: number;
-    title: string;
-    description: string;
-    url: string;
-    content_type: string;
-    relevance_score: number;
-    source: {
-        name: string;
-        source_type: string;
-    };
-    scraped_at: string;
-}
-
-interface User {
-    id: number;
-    email: string;
-    is_admin: boolean;
-    digest_enabled: boolean;
-    onboarding_complete: boolean;
-}
+import { Content, User } from '@/types';
 
 export default function Dashboard() {
-    const [user, setUser] = useState<User | null>(null);
     const [content, setContent] = useState<Content[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>('all');
 
     useEffect(() => {
+        const loadData = async () => {
+            try {
+                // Fetch content feed
+                const contentRes = await fetch(`${API_URL}/api/content/feed`, {
+                    credentials: 'include',
+                });
+
+                if (contentRes.ok) {
+                    const contentData = await contentRes.json();
+                    setContent(contentData.feed || []);
+                }
+            } catch (err) {
+                console.error('Failed to load data:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         loadData();
     }, []);
-
-    const loadData = async () => {
-        try {
-            // Fetch user
-            const userRes = await fetch(`${API_URL}/api/auth/me`, {
-                credentials: 'include',
-            });
-
-            if (!userRes.ok) {
-                window.location.href = '/';
-                return;
-            }
-
-            const userData = await userRes.json();
-            setUser(userData.user);
-
-            // Fetch content
-            const contentRes = await fetch(`${API_URL}/api/content/feed?limit=50`, {
-                credentials: 'include',
-            });
-
-            if (contentRes.ok) {
-                const contentData = await contentRes.json();
-                setContent(contentData.feed || []);
-            }
-        } catch (err) {
-            console.error('Failed to load data:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleLogout = async () => {
-        await fetch(`${API_URL}/api/auth/logout`, {
-            method: 'POST',
-            credentials: 'include',
-        });
-        window.location.href = '/';
-    };
 
     const getSourceIcon = (type: string) => {
         switch (type) {
@@ -112,47 +71,7 @@ export default function Dashboard() {
 
     return (
         <div className={styles.dashboard}>
-            {/* Sidebar */}
-            <aside className={styles.sidebar}>
-                <div className={styles.logo}>
-                    <span className="text-gradient">Daedalus</span>Signal
-                </div>
-
-                <nav className={styles.nav}>
-                    <Link href="/dashboard" className={`${styles.navItem} ${styles.active}`}>
-                        <span>📊</span> Feed
-                    </Link>
-                    <Link href="/dashboard/sources" className={styles.navItem}>
-                        <span>🔗</span> Sources
-                    </Link>
-                    <Link href="/dashboard/tags" className={styles.navItem}>
-                        <span>🏷️</span> Tags
-                    </Link>
-                    <Link href="/dashboard/digest" className={styles.navItem}>
-                        <span>📧</span> Digest
-                    </Link>
-                    {user?.is_admin && (
-                        <Link href="/dashboard/admin" className={styles.navItem}>
-                            <span>⚙️</span> Admin
-                        </Link>
-                    )}
-                </nav>
-
-                <div className={styles.userSection}>
-                    <div className={styles.userInfo}>
-                        <div className={styles.avatar}>
-                            {user?.email.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                            <p className={styles.userEmail}>{user?.email}</p>
-                            {user?.is_admin && <span className={styles.adminBadge}>Admin</span>}
-                        </div>
-                    </div>
-                    <button onClick={handleLogout} className={styles.logoutBtn}>
-                        Logout
-                    </button>
-                </div>
-            </aside>
+            <Sidebar activePage="feed" />
 
             {/* Main Content */}
             <main className={styles.main}>
@@ -180,6 +99,12 @@ export default function Dashboard() {
                             onClick={() => setFilter('twitter')}
                         >
                             X
+                        </button>
+                        <button
+                            className={`${styles.filterBtn} ${filter === 'linkedin' ? styles.active : ''}`}
+                            onClick={() => setFilter('linkedin')}
+                        >
+                            LinkedIn
                         </button>
                         <button
                             className={`${styles.filterBtn} ${filter === 'github' ? styles.active : ''}`}

@@ -1,12 +1,41 @@
 """
-Seed the database with default sources and tags from the PRD
+Seed the database with default sources, tags, and admin user from the PRD
 """
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import bcrypt
 from app.database import init_db, get_session, close_session
-from app.models import Source, Tag
+from app.models import Source, Tag, User
+from app.config import ADMIN_EMAIL, ADMIN_PASSWORD
+
+
+def seed_admin_user():
+    """Create admin user from environment variables."""
+    db = get_session()
+    try:
+        existing = db.query(User).filter_by(email=ADMIN_EMAIL).first()
+        if not existing:
+            password_hash = bcrypt.hashpw(
+                ADMIN_PASSWORD.encode('utf-8'),
+                bcrypt.gensalt()
+            ).decode('utf-8')
+            
+            admin = User(
+                email=ADMIN_EMAIL,
+                password_hash=password_hash,
+                is_admin=True,
+                is_active=True,
+                onboarding_complete=True
+            )
+            db.add(admin)
+            db.commit()
+            print(f"  Created admin user: {ADMIN_EMAIL}")
+        else:
+            print(f"  Admin user already exists: {ADMIN_EMAIL}")
+    finally:
+        close_session(db)
 
 
 def seed_default_sources():
@@ -112,13 +141,16 @@ def main():
     print("Initializing database...")
     init_db()
     
+    print("\nSeeding admin user...")
+    seed_admin_user()
+    
     print("\nSeeding default sources...")
     seed_default_sources()
     
     print("\nSeeding default tags...")
     seed_default_tags()
     
-    print("\n✓ Database seeded successfully!")
+    print("\nDatabase seeded successfully!")
 
 
 if __name__ == '__main__':

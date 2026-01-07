@@ -44,8 +44,7 @@
     font-size: 4rem;
     font-weight: 700;
     margin-bottom: 1.5rem;
-    animation: fadeIn 0.5s ease 0.1s forwards;
-    opacity: 0;
+    animation: fadeIn 0.5s ease 0.1s both;
 }
 
 .subtitle {
@@ -54,8 +53,7 @@
     max-width: 600px;
     margin: 0 auto 2rem;
     line-height: 1.8;
-    animation: fadeIn 0.5s ease 0.2s forwards;
-    opacity: 0;
+    animation: fadeIn 0.5s ease 0.2s both;
 }
 
 .features {
@@ -63,8 +61,7 @@
     justify-content: center;
     gap: 2rem;
     margin-bottom: 2.5rem;
-    animation: fadeIn 0.5s ease 0.3s forwards;
-    opacity: 0;
+    animation: fadeIn 0.5s ease 0.3s both;
 }
 
 .feature {
@@ -84,8 +81,7 @@
     align-items: center;
     justify-content: center;
     gap: 1.5rem;
-    animation: fadeIn 0.5s ease 0.4s forwards;
-    opacity: 0;
+    animation: fadeIn 0.5s ease 0.4s both;
 }
 
 .kofi {

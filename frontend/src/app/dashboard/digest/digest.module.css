@@ -1,0 +1,110 @@
+.digestCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.cardHeader h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.cardHeader p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Toggle Switch */
+.toggle {
+    width: 60px;
+    height: 32px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: 9999px;
+    position: relative;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.toggle:hover {
+    border-color: var(--accent-primary);
+}
+
+.toggle.enabled {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.toggleSwitch {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    transition: transform var(--transition-fast);
+}
+
+.toggle.enabled .toggleSwitch {
+    transform: translateX(28px);
+}
+
+/* Status */
+.status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.statusIcon {
+    font-size: 1.25rem;
+}
+
+/* Info Card */
+.infoCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+}
+
+.infoCard h4 {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+}
+
+.infoCard ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.infoCard li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.infoCard li span {
+    font-size: 1.25rem;
+}

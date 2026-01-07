@@ -3,114 +3,14 @@
     min-height: 100vh;
 }
 
-/* Sidebar */
-.sidebar {
-    width: 260px;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    padding: 1.5rem;
-    position: fixed;
-    height: 100vh;
-    overflow-y: auto;
-}
 
-.logo {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 2rem;
-}
 
-.nav {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    flex: 1;
-}
-
-.navItem {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border-radius: var(--radius-md);
-    color: var(--text-secondary);
-    transition: all var(--transition-fast);
-}
-
-.navItem:hover {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-}
-
-.navItem.active {
-    background: var(--accent-glow);
-    color: var(--accent-primary);
-}
-
-.userSection {
-    margin-top: auto;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border-color);
-}
-
-.userInfo {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--accent-gradient);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 1rem;
-}
-
-.userEmail {
-    font-size: 0.875rem;
-    color: var(--text-primary);
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.adminBadge {
-    font-size: 0.7rem;
-    background: var(--accent-glow);
-    color: var(--accent-primary);
-    padding: 0.125rem 0.5rem;
-    border-radius: 9999px;
-}
-
-.logoutBtn {
-    width: 100%;
-    padding: 0.5rem;
-    color: var(--text-muted);
-    font-size: 0.875rem;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
-}
-
-.logoutBtn:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #fca5a5;
-}
-
+/* Main Content */
 /* Main Content */
 .main {
     flex: 1;
-    margin-left: 260px;
     padding: 2rem;
-    max-width: calc(100vw - 260px);
+    width: 100%;
 }
 
 .header {
@@ -301,44 +201,15 @@
 }
 
 /* Responsive */
+/* Responsive */
 @media (max-width: 1024px) {
-    .sidebar {
-        width: 80px;
-        padding: 1rem;
-    }
-
-    .logo {
-        font-size: 0;
-    }
-
-    .logo::before {
-        content: '⚡';
-        font-size: 1.5rem;
-    }
-
-    .navItem span:last-child {
-        display: none;
-    }
-
-    .userEmail,
-    .adminBadge {
-        display: none;
-    }
-
     .main {
-        margin-left: 80px;
-        max-width: calc(100vw - 80px);
+        width: 100%;
     }
 }
 
 @media (max-width: 640px) {
-    .sidebar {
-        display: none;
-    }
-
     .main {
-        margin-left: 0;
-        max-width: 100%;
         padding: 1rem;
     }
 

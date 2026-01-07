@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-    title: 'DaedalusSignal - AI Intelligence Aggregator',
-    description: 'Surface high-signal content about agentic development, context engineering, and frontier AI tooling.',
-    keywords: ['AI', 'machine learning', 'agentic systems', 'LLM', 'context engineering'],
+    title: 'DaedalusSignal - Intelligence Aggregator',
+    description: 'Surface high-signal content about agentic development, context engineering, and frontier tooling.',
+    keywords: ['machine learning', 'agentic systems', 'LLM', 'context engineering', 'tech news'],
 };
 
 export default function RootLayout({
