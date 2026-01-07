@@ -227,3 +227,48 @@
     color: var(--text-muted);
     padding: 2rem;
 }
+
+/* Test Email Button */
+.testEmailBtn {
+    padding: 0.5rem 1rem;
+    background: var(--accent-gradient);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.testEmailBtn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.testEmailBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.testEmailMsg {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Delete Button */
+.deleteBtn {
+    padding: 0.375rem 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.deleteBtn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--error);
+}

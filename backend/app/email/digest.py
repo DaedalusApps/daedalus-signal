@@ -98,3 +98,97 @@ def run_daily_digest():
         db.rollback()
     finally:
         close_session(db)
+
+
+def send_test_digest(email: str) -> bool:
+    """Send a test digest email to verify email configuration."""
+    from app.config import EMAIL_MODE, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM
+    
+    # Create sample content for testing
+    sample_digest = {
+        'user': email,
+        'content': [
+            {
+                'id': 0,
+                'title': '🧪 Test Email - DaedalusSignal Digest',
+                'content_type': 'test',
+                'relevance_score': 100,
+                'url': 'https://signal.daedalusapps.com',
+                'description': 'This is a test email to verify your digest configuration is working correctly. '
+                               'If you can see this, your email settings are configured properly!'
+            },
+            {
+                'id': 1,
+                'title': 'Sample Article: The Future of AI Agents',
+                'content_type': 'article',
+                'relevance_score': 85,
+                'url': 'https://example.com/ai-agents',
+                'description': 'This is what a typical digest item would look like with a description preview.'
+            }
+        ],
+        'generated_at': datetime.utcnow().isoformat()
+    }
+    
+    if EMAIL_MODE == 'console':
+        print("\n" + "=" * 60)
+        print(f"📧 TEST EMAIL for {email}")
+        print("=" * 60)
+        print("Email mode is 'console'. To send real emails, configure SMTP.")
+        send_digest(sample_digest)
+        return True
+    
+    elif EMAIL_MODE == 'smtp':
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        
+        # Build email HTML
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #6366f1;">🔮 DaedalusSignal Daily Digest</h1>
+            <p>Generated: {sample_digest['generated_at']}</p>
+            <hr>
+        """
+        
+        for item in sample_digest['content']:
+            html_content += f"""
+            <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="margin: 0 0 10px 0;">
+                    <a href="{item['url']}" style="color: #6366f1;">{item['title']}</a>
+                </h3>
+                <p style="color: #666; margin: 0;">{item.get('description', '')}</p>
+                <p style="color: #999; font-size: 12px;">Score: {item['relevance_score']}</p>
+            </div>
+            """
+        
+        html_content += """
+            <hr>
+            <p style="color: #999; font-size: 12px;">
+                This is a test email from DaedalusSignal.
+            </p>
+        </body>
+        </html>
+        """
+        
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = '🧪 DaedalusSignal Test Email'
+            msg['From'] = SMTP_FROM
+            msg['To'] = email
+            
+            msg.attach(MIMEText(html_content, 'html'))
+            
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.sendmail(SMTP_FROM, email, msg.as_string())
+            
+            print(f"Test email sent successfully to {email}")
+            return True
+            
+        except Exception as e:
+            print(f"SMTP Error: {e}")
+            raise e
+    
+    return False

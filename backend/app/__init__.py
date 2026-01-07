@@ -39,6 +39,7 @@ def create_app():
     from app.api.content import content_bp
     from app.api.admin import admin_bp
     from app.api.feedback import feedback_bp
+    from app.api.unsubscribe import unsubscribe_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(sources_bp, url_prefix='/api/sources')
@@ -46,6 +47,7 @@ def create_app():
     app.register_blueprint(content_bp, url_prefix='/api/content')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(feedback_bp, url_prefix='/api/feedback')
+    app.register_blueprint(unsubscribe_bp, url_prefix='/api/unsubscribe')
     
     # Create admin user on first run
     from app.security.auth import create_admin_if_not_exists

@@ -34,6 +34,8 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'feedback'>('overview');
+    const [testEmailLoading, setTestEmailLoading] = useState(false);
+    const [testEmailMessage, setTestEmailMessage] = useState('');
 
 
     useEffect(() => {
@@ -71,6 +73,47 @@ export default function AdminPage() {
             setError('Failed to load admin data');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const sendTestEmail = async () => {
+        setTestEmailLoading(true);
+        setTestEmailMessage('');
+        try {
+            const res = await fetch(`${API_URL}/api/admin/test-email`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setTestEmailMessage(`✅ ${data.message}`);
+            } else {
+                setTestEmailMessage(`❌ ${data.error}`);
+            }
+        } catch (err) {
+            setTestEmailMessage('❌ Failed to send test email');
+        } finally {
+            setTestEmailLoading(false);
+        }
+    };
+
+    const deleteUser = async (userId: number, email: string) => {
+        if (!confirm(`Are you sure you want to delete user ${email}? This cannot be undone.`)) {
+            return;
+        }
+        try {
+            const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+            if (res.ok) {
+                setUsers(users.filter(u => u.id !== userId));
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Failed to delete user');
+            }
+        } catch (err) {
+            alert('Failed to delete user');
         }
     };
 
@@ -171,6 +214,19 @@ export default function AdminPage() {
                                 <p>Pending Feedback</p>
                             </div>
                         </div>
+                        <div className={pageStyles.statCard}>
+                            <span className={pageStyles.statIcon}>📧</span>
+                            <div className={pageStyles.statInfo}>
+                                <button
+                                    onClick={sendTestEmail}
+                                    disabled={testEmailLoading}
+                                    className={pageStyles.testEmailBtn}
+                                >
+                                    {testEmailLoading ? 'Sending...' : 'Send Test Email'}
+                                </button>
+                                {testEmailMessage && <p className={pageStyles.testEmailMsg}>{testEmailMessage}</p>}
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -185,6 +241,7 @@ export default function AdminPage() {
                                     <th>Digest</th>
                                     <th>Onboarded</th>
                                     <th>Joined</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -207,6 +264,16 @@ export default function AdminPage() {
                                             </span>
                                         </td>
                                         <td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}</td>
+                                        <td>
+                                            {!user.is_admin && (
+                                                <button
+                                                    onClick={() => deleteUser(user.id, user.email)}
+                                                    className={pageStyles.deleteBtn}
+                                                >
+                                                    Delete
+                                                </button>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

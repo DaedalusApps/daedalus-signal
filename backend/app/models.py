@@ -153,8 +153,26 @@ class Feedback(Base):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
     email = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
-    feedback_type = Column(String(50), default='general')  # general, feature, bug
+    feedback_type = Column(String(50), default='general')  # general, feature, bug, unblock_request
     status = Column(String(20), default='pending')  # pending, reviewed, resolved
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship('User')
+
+
+class EmailBlocklist(Base):
+    """Emails that have unsubscribed from digest emails."""
+    __tablename__ = 'email_blocklist'
+    
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    reason = Column(String(255), default='user_unsubscribed')  # user_unsubscribed, admin_blocked
+    blocked_at = Column(DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'email': self.email,
+            'reason': self.reason,
+            'blocked_at': self.blocked_at.isoformat() if self.blocked_at else None
+        }

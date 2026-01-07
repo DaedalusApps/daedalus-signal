@@ -15,10 +15,12 @@ interface SidebarProps {
 
 export default function Sidebar({ activePage }: SidebarProps) {
     const [user, setUser] = useState<User | null>(null);
+    const [newCount, setNewCount] = useState(0);
     const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
         loadUser();
+        checkNewContent();
     }, []);
 
     const loadUser = async () => {
@@ -41,6 +43,31 @@ export default function Sidebar({ activePage }: SidebarProps) {
         window.location.href = '/';
     };
 
+    const checkNewContent = async () => {
+        const lastChecked = localStorage.getItem('lastContentCheck');
+        if (!lastChecked) {
+            localStorage.setItem('lastContentCheck', new Date().toISOString());
+            return;
+        }
+        try {
+            const res = await fetch(
+                `${API_URL}/api/content/new-count?since=${encodeURIComponent(lastChecked)}`,
+                { credentials: 'include' }
+            );
+            if (res.ok) {
+                const data = await res.json();
+                setNewCount(data.count);
+            }
+        } catch (err) {
+            console.error('Failed to check new content:', err);
+        }
+    };
+
+    const clearNewCount = () => {
+        setNewCount(0);
+        localStorage.setItem('lastContentCheck', new Date().toISOString());
+    };
+
     const navItems = [
         { id: 'feed', href: '/dashboard', icon: '📊', label: 'Feed' },
         { id: 'sources', href: '/dashboard/sources', icon: '🔗', label: 'Sources' },
@@ -60,8 +87,12 @@ export default function Sidebar({ activePage }: SidebarProps) {
                         key={item.id}
                         href={item.href}
                         className={`${styles.navItem} ${activePage === item.id ? styles.active : ''}`}
+                        onClick={item.id === 'feed' ? clearNewCount : undefined}
                     >
                         <span>{item.icon}</span> {item.label}
+                        {item.id === 'feed' && newCount > 0 && (
+                            <span className={styles.badge}>{newCount > 99 ? '99+' : newCount}</span>
+                        )}
                     </Link>
                 ))}
             </nav>

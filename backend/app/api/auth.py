@@ -124,3 +124,30 @@ def update_current_user():
         return jsonify({'error': 'Update failed. Please try again.'}), 500
     finally:
         close_session(db)
+
+
+@auth_bp.route('/me', methods=['DELETE'])
+@login_required
+def delete_account():
+    """Delete the current user's account."""
+    db = get_session()
+    try:
+        user = db.query(User).filter_by(id=session['user_id']).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        if user.is_admin:
+            return jsonify({'error': 'Admin accounts cannot be deleted this way'}), 400
+        
+        email = user.email
+        db.delete(user)
+        db.commit()
+        session.pop('user_id', None)
+        
+        return jsonify({'message': f'Account {email} deleted successfully'}), 200
+    except Exception as e:
+        db.rollback()
+        print(f"Delete account error: {e}")
+        return jsonify({'error': 'Failed to delete account. Please try again.'}), 500
+    finally:
+        close_session(db)

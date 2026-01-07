@@ -102,3 +102,36 @@ def get_digest():
         return jsonify({'digest': [c.to_dict() for c in contents]}), 200
     finally:
         close_session(db)
+
+
+@content_bp.route('/new-count', methods=['GET'])
+@login_required
+def get_new_count():
+    """Get count of new content since a given timestamp."""
+    from datetime import datetime
+    
+    since = request.args.get('since')
+    if not since:
+        return jsonify({'count': 0}), 200
+    
+    try:
+        since_dt = datetime.fromisoformat(since.replace('Z', '+00:00'))
+    except ValueError:
+        return jsonify({'error': 'Invalid timestamp format'}), 400
+    
+    db = get_session()
+    try:
+        user = db.query(User).filter_by(id=session['user_id']).first()
+        source_ids = [s.id for s in user.sources]
+        
+        if not source_ids:
+            return jsonify({'count': 0}), 200
+        
+        count = db.query(Content)\
+            .filter(Content.source_id.in_(source_ids))\
+            .filter(Content.scraped_at > since_dt)\
+            .count()
+        
+        return jsonify({'count': count}), 200
+    finally:
+        close_session(db)

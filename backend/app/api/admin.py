@@ -134,3 +134,94 @@ def get_feedback():
         }), 200
     finally:
         close_session(db)
+
+
+@admin_bp.route('/test-email', methods=['POST'])
+@admin_required
+def send_test_email():
+    """Send a test digest email to the admin."""
+    from app.email.digest import send_test_digest
+    from app.config import ADMIN_EMAIL
+    
+    try:
+        result = send_test_digest(ADMIN_EMAIL)
+        if result:
+            return jsonify({'message': f'Test email sent to {ADMIN_EMAIL}'}), 200
+        else:
+            return jsonify({'error': 'Failed to send test email. Check email settings.'}), 500
+    except Exception as e:
+        print(f"Test email error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    """Delete a user (admin only)."""
+    from flask import session
+    
+    db = get_session()
+    try:
+        user = db.query(User).filter_by(id=user_id).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Prevent admin from deleting themselves
+        if user.id == session.get('user_id'):
+            return jsonify({'error': 'Cannot delete your own account from admin panel'}), 400
+        
+        db.delete(user)
+        db.commit()
+        
+        return jsonify({'message': f'User {user.email} deleted'}), 200
+    except Exception as e:
+        db.rollback()
+        print(f"Delete user error: {e}")
+        return jsonify({'error': 'Failed to delete user'}), 500
+    finally:
+        close_session(db)
+
+
+@admin_bp.route('/blocklist', methods=['GET'])
+@admin_required
+def get_blocklist():
+    """Get all blocked emails."""
+    from app.models import EmailBlocklist
+    
+    db = get_session()
+    try:
+        blocked = db.query(EmailBlocklist).order_by(EmailBlocklist.blocked_at.desc()).all()
+        return jsonify({'blocklist': [b.to_dict() for b in blocked]}), 200
+    finally:
+        close_session(db)
+
+
+@admin_bp.route('/blocklist/<int:blocklist_id>', methods=['DELETE'])
+@admin_required
+def unblock_email(blocklist_id):
+    """Remove an email from the blocklist (unblock)."""
+    from app.models import EmailBlocklist
+    
+    db = get_session()
+    try:
+        entry = db.query(EmailBlocklist).filter_by(id=blocklist_id).first()
+        if not entry:
+            return jsonify({'error': 'Blocklist entry not found'}), 404
+        
+        email = entry.email
+        db.delete(entry)
+        
+        # Re-enable digest for user if they have an account
+        user = db.query(User).filter_by(email=email).first()
+        if user:
+            user.digest_enabled = True
+        
+        db.commit()
+        
+        return jsonify({'message': f'{email} has been unblocked'}), 200
+    except Exception as e:
+        db.rollback()
+        print(f"Unblock error: {e}")
+        return jsonify({'error': 'Failed to unblock email'}), 500
+    finally:
+        close_session(db)
