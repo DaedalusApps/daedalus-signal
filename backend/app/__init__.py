@@ -19,10 +19,11 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = SECRET_KEY
     
-    # Secure session configuration
-    app.config['SESSION_COOKIE_SECURE'] = False  # Set True in production with HTTPS
+    # Secure session configuration for cross-origin deployment
+    # SameSite=None + Secure=True required when frontend/backend are on different domains
+    app.config['SESSION_COOKIE_SECURE'] = True  # Required for SameSite=None
     app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Allow cross-origin cookies
     
     # Initialize extensions
     CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
