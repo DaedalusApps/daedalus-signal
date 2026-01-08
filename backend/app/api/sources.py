@@ -26,10 +26,20 @@ def get_sources():
 @sources_bp.route('/defaults', methods=['GET'])
 def get_default_sources():
     """Get all default sources."""
+    from app.config import DATABASE_URL
     db = get_session()
     try:
+        # Debug: count all sources first
+        total = db.query(Source).count()
         sources = db.query(Source).filter_by(is_default=True, is_approved=True).all()
-        return jsonify({'sources': [s.to_dict() for s in sources]}), 200
+        return jsonify({
+            'sources': [s.to_dict() for s in sources],
+            '_debug': {
+                'total_sources': total,
+                'filtered_count': len(sources),
+                'db_url_prefix': DATABASE_URL[:30] if DATABASE_URL else 'None'
+            }
+        }), 200
     finally:
         close_session(db)
 
