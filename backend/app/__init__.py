@@ -10,7 +10,8 @@ from app.database import init_db
 
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=[RATE_LIMIT_DEFAULT]
+    default_limits=[RATE_LIMIT_DEFAULT],
+    storage_uri="memory://"  # Explicit in-memory storage (suitable for single-process deployments)
 )
 
 

@@ -193,9 +193,10 @@ class TwitterScraper(BaseScraper):
     """Twitter/X scraper via Nitter mirrors."""
 
     NITTER_INSTANCES = [
-        'nitter.net',
-        'nitter.privacydev.net',
+        'xcancel.com',
         'nitter.poast.org',
+        'nitter.privacyredirect.com',
+        'nitter.net',
     ]
 
     def _get_username(self, url: str) -> str | None:
