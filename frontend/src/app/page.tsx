@@ -241,7 +241,7 @@ export default function Home() {
                                 <button
                                     type="submit"
                                     className="btn btn-primary"
-                                    disabled={loading || (isRegister && TURNSTILE_SITE_KEY && !turnstileToken)}
+                                    disabled={loading || (isRegister && !!TURNSTILE_SITE_KEY && !turnstileToken)}
                                 >
                                     {loading ? 'Please wait...' : (isRegister ? 'Create Account' : 'Sign In')}
                                 </button>
