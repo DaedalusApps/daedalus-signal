@@ -48,6 +48,14 @@ export default function Home() {
         };
     }, []);
 
+    // Pre-warm the backend when login form is shown (prevents cold-start errors)
+    useEffect(() => {
+        if (showLogin) {
+            // Fire-and-forget ping to wake up the backend
+            fetch(`${API_URL}/api/auth/me`, { credentials: 'include' }).catch(() => { });
+        }
+    }, [showLogin]);
+
     // Render Turnstile widget when in register mode
     useEffect(() => {
         if (!TURNSTILE_SITE_KEY || !isRegister || !showLogin) {
@@ -95,7 +103,7 @@ export default function Home() {
         };
     }, [isRegister, showLogin]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent, retryCount = 0) => {
         e.preventDefault();
         setError('');
         setLoading(true);
@@ -107,13 +115,13 @@ export default function Home() {
             return;
         }
 
-        try {
-            const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
-            const body: Record<string, string> = { email, password };
-            if (isRegister && turnstileToken) {
-                body.turnstile_token = turnstileToken;
-            }
+        const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
+        const body: Record<string, string> = { email, password };
+        if (isRegister && turnstileToken) {
+            body.turnstile_token = turnstileToken;
+        }
 
+        try {
             const response = await fetch(`${API_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -130,14 +138,22 @@ export default function Home() {
                     window.turnstile.reset(widgetIdRef.current);
                     setTurnstileToken('');
                 }
+                setLoading(false);
                 return;
             }
 
             // Redirect to dashboard on success
             window.location.href = '/dashboard';
         } catch (err) {
+            // Retry once on network error (handles cold-start delays)
+            if (retryCount < 1) {
+                setError('Connecting to server...');
+                setTimeout(() => {
+                    handleSubmit(e, retryCount + 1);
+                }, 1000);
+                return;
+            }
             setError('Network error. Is the backend running?');
-        } finally {
             setLoading(false);
         }
     };
