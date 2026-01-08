@@ -5,6 +5,10 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Load environment variables from .env file (same as WSGI)
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
+
 import bcrypt
 from app.database import init_db, get_session, close_session
 from app.models import Source, Tag, User
