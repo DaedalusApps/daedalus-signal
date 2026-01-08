@@ -124,7 +124,7 @@ if (!$digest_html) {
 $subject = $is_test ? 'Test Email - DaedalusSignal Digest' : 'DaedalusSignal Daily Digest';
 
 // Get from address from environment or use default
-$smtp_from = getenv('SMTP_FROM') ?: 'noreply@daedalusapps.com';
+$smtp_from = getenv('SMTP_FROM') ?: 'noreply@signal.daedalusapps.com';
 
 $headers = [
     'MIME-Version: 1.0',
