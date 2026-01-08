@@ -95,13 +95,14 @@ export default function AdminPage() {
                     return;
                 }
 
-                const { payload, signature } = await payloadRes.json();
+                const { payload, payload_json, signature } = await payloadRes.json();
 
                 // Step 2: Send to DreamHost worker
+                // Include payload_json to ensure exact string matching for HMAC verification
                 const dhRes = await fetch(`${DREAMHOST_WORKER_URL}/web_shim.php`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ payload, signature }),
+                    body: JSON.stringify({ payload, payload_json, signature }),
                 });
 
                 const dhData = await dhRes.json();

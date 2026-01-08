@@ -52,6 +52,7 @@ if (!$data || !isset($data['payload']) || !isset($data['signature'])) {
 
 $payload = $data['payload'];
 $signature = $data['signature'];
+$payload_json_from_python = $data['payload_json'] ?? null;  // Exact JSON string from Python
 
 // Get SECRET_KEY from environment
 $secret = getenv('SECRET_KEY');
@@ -71,8 +72,7 @@ if (abs(time() - $timestamp) > 600) {
 
 // Verify signature
 // The signature is HMAC-SHA256 of "timestamp:payload_json" using SECRET_KEY
-// IMPORTANT: Must match Python's json.dumps(payload, sort_keys=True) format
-// PHP's ksort recursively sorts keys to match Python's sort_keys=True
+// Use the exact JSON string from Python if provided, otherwise fall back to PHP encoding
 
 function sort_array_keys_recursive(&$array) {
     if (!is_array($array)) return;
@@ -84,9 +84,16 @@ function sort_array_keys_recursive(&$array) {
     }
 }
 
-$sorted_payload = $payload;
-sort_array_keys_recursive($sorted_payload);
-$payload_json = json_encode($sorted_payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+// Prefer exact JSON string from Python to avoid encoding differences
+if ($payload_json_from_python) {
+    $payload_json = $payload_json_from_python;
+} else {
+    // Fallback: re-encode with sorted keys (may not match Python exactly)
+    $sorted_payload = $payload;
+    sort_array_keys_recursive($sorted_payload);
+    $payload_json = json_encode($sorted_payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+}
+
 $message = $timestamp . ':' . $payload_json;
 $expected_signature = hash_hmac('sha256', $message, $secret);
 

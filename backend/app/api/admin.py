@@ -200,6 +200,7 @@ def get_test_email_payload():
 
     return jsonify({
         'payload': payload,
+        'payload_json': payload_json,  # Exact JSON string used for signing
         'signature': signature
     }), 200
 
