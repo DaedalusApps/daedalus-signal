@@ -13,6 +13,7 @@ export default function DigestPage() {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         loadUser();
@@ -54,6 +55,37 @@ export default function DigestPage() {
             console.error('Failed to update digest setting:', err);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const deleteAccount = async () => {
+        if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+            return;
+        }
+
+        if (!confirm('FINAL WARNING: This will permanently delete all your data including sources, tags, and preferences. Are you absolutely sure?')) {
+            return;
+        }
+
+        setDeleting(true);
+        try {
+            const res = await fetch(`${API_URL}/api/auth/me`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+
+            if (res.ok) {
+                alert('Account deleted successfully.');
+                window.location.href = '/';
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Failed to delete account');
+            }
+        } catch (err) {
+            console.error('Failed to delete account:', err);
+            alert('Failed to delete account. Please try again.');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -112,6 +144,23 @@ export default function DigestPage() {
                         <li><span>🔗</span> Only from your subscribed sources</li>
                         <li><span>📅</span> Delivered daily at 8:00 AM your local time</li>
                     </ul>
+                </div>
+
+                <div className={pageStyles.dangerZone}>
+                    <h4>⚠️ Danger Zone</h4>
+                    <div className={pageStyles.dangerContent}>
+                        <div>
+                            <h5>Delete Account</h5>
+                            <p>Permanently delete your account and all associated data. This cannot be undone.</p>
+                        </div>
+                        <button
+                            className={pageStyles.deleteBtn}
+                            onClick={deleteAccount}
+                            disabled={deleting}
+                        >
+                            {deleting ? 'Deleting...' : 'Delete Account'}
+                        </button>
+                    </div>
                 </div>
             </main>
         </div>

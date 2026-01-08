@@ -108,3 +108,59 @@
 .infoCard li span {
     font-size: 1.25rem;
 }
+
+/* Danger Zone */
+.dangerZone {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+.dangerZone h4 {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    color: #f87171;
+}
+
+.dangerContent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+}
+
+.dangerContent h5 {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+}
+
+.dangerContent p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.deleteBtn {
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #f87171;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.deleteBtn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #f87171;
+}
+
+.deleteBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
