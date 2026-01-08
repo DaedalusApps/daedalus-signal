@@ -37,6 +37,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+    email_verified = Column(Boolean, default=False)
     digest_enabled = Column(Boolean, default=True)
     onboarding_complete = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -50,6 +51,7 @@ class User(Base):
             'id': self.id,
             'email': self.email,
             'is_admin': self.is_admin,
+            'email_verified': self.email_verified,
             'digest_enabled': self.digest_enabled,
             'onboarding_complete': self.onboarding_complete,
             'created_at': self.created_at.isoformat() if self.created_at else None
@@ -163,12 +165,12 @@ class Feedback(Base):
 class EmailBlocklist(Base):
     """Emails that have unsubscribed from digest emails."""
     __tablename__ = 'email_blocklist'
-    
+
     id = Column(Integer, primary_key=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     reason = Column(String(255), default='user_unsubscribed')  # user_unsubscribed, admin_blocked
     blocked_at = Column(DateTime, default=datetime.utcnow)
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -176,3 +178,19 @@ class EmailBlocklist(Base):
             'reason': self.reason,
             'blocked_at': self.blocked_at.isoformat() if self.blocked_at else None
         }
+
+
+class VerificationCode(Base):
+    """Verification codes for email verification and password reset."""
+    __tablename__ = 'verification_codes'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    email = Column(String(255), nullable=False, index=True)
+    code = Column(String(6), nullable=False)
+    code_type = Column(String(20), nullable=False)  # 'email_verify' or 'password_reset'
+    expires_at = Column(DateTime, nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship('User')

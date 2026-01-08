@@ -33,10 +33,10 @@ async function request<T>(
 
 // Auth
 export const auth = {
-    register: (email: string, password: string) =>
+    register: (email: string, password: string, turnstile_token?: string) =>
         request('/api/auth/register', {
             method: 'POST',
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email, password, turnstile_token }),
         }),
 
     login: (email: string, password: string) =>
@@ -54,6 +54,30 @@ export const auth = {
         request('/api/auth/me', {
             method: 'PATCH',
             body: JSON.stringify(data),
+        }),
+
+    verifyEmail: (email: string, code: string) =>
+        request('/api/auth/verify-email', {
+            method: 'POST',
+            body: JSON.stringify({ email, code }),
+        }),
+
+    resendVerification: (email: string) =>
+        request('/api/auth/resend-verification', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        }),
+
+    forgotPassword: (email: string) =>
+        request('/api/auth/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        }),
+
+    resetPassword: (email: string, code: string, new_password: string) =>
+        request('/api/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ email, code, new_password }),
         }),
 };
 
