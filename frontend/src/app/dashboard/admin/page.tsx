@@ -7,6 +7,7 @@ import styles from '../dashboard.module.css';
 import pageStyles from './admin.module.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const DREAMHOST_WORKER_URL = process.env.NEXT_PUBLIC_DREAMHOST_WORKER_URL || '';
 
 interface Stats {
     users: number;
@@ -79,16 +80,48 @@ export default function AdminPage() {
     const sendTestEmail = async () => {
         setTestEmailLoading(true);
         setTestEmailMessage('');
+
         try {
-            const res = await fetch(`${API_URL}/api/admin/test-email`, {
-                method: 'POST',
-                credentials: 'include',
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setTestEmailMessage(`✅ ${data.message}`);
+            // If DreamHost worker is configured, use 2-step flow
+            if (DREAMHOST_WORKER_URL) {
+                // Step 1: Get signed payload from PythonAnywhere
+                const payloadRes = await fetch(`${API_URL}/api/admin/test-email-payload`, {
+                    credentials: 'include',
+                });
+
+                if (!payloadRes.ok) {
+                    const data = await payloadRes.json();
+                    setTestEmailMessage(`❌ ${data.error || 'Failed to get email payload'}`);
+                    return;
+                }
+
+                const { payload, signature } = await payloadRes.json();
+
+                // Step 2: Send to DreamHost worker
+                const dhRes = await fetch(`${DREAMHOST_WORKER_URL}/web_shim.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payload, signature }),
+                });
+
+                const dhData = await dhRes.json();
+                if (dhRes.ok) {
+                    setTestEmailMessage(`✅ ${dhData.message}`);
+                } else {
+                    setTestEmailMessage(`❌ ${dhData.error || 'DreamHost worker failed'}`);
+                }
             } else {
-                setTestEmailMessage(`❌ ${data.error}`);
+                // Fallback to direct PA send if DreamHost not configured
+                const res = await fetch(`${API_URL}/api/admin/test-email`, {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    setTestEmailMessage(`✅ ${data.message}`);
+                } else {
+                    setTestEmailMessage(`❌ ${data.error}`);
+                }
             }
         } catch (err) {
             setTestEmailMessage('❌ Failed to send test email');

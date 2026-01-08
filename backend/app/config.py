@@ -16,6 +16,15 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR / 'daedalus.db'}"
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 BCRYPT_ROUNDS = 12
 
+# Worker Authentication (for DreamHost worker communication)
+WORKER_SECRET = os.getenv("WORKER_SECRET", "")
+
+# DreamHost Worker Configuration
+DREAMHOST_WORKER_URL = os.getenv("DREAMHOST_WORKER_URL", "")
+
+# PythonAnywhere API URL (for workers to call back, and for unsubscribe links)
+PA_API_URL = os.getenv("PA_API_URL", "https://signal.daedalusapps.com")
+
 # Admin credentials (configure via environment variables)
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@daedalusapps.com")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "changeme123")

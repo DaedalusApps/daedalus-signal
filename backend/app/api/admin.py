@@ -154,6 +154,56 @@ def send_test_email():
         return jsonify({'error': str(e)}), 500
 
 
+@admin_bp.route('/test-email-payload', methods=['GET'])
+@admin_required
+def get_test_email_payload():
+    """
+    Generate a signed test email payload for browser-to-DreamHost flow.
+    Returns JSON with digest_html and HMAC signature.
+    """
+    import json
+    import time
+    from app.email.digest import generate_digest_html
+    from app.security.worker import generate_test_email_signature
+    from app.config import ADMIN_EMAIL
+
+    # Create sample content for testing
+    sample_contents = [
+        {
+            'title': 'Test Email - DaedalusSignal Digest',
+            'url': 'https://signal.daedalusapps.com',
+            'description': 'This is a test email to verify your digest configuration is working correctly.',
+            'relevance_score': 100,
+            'content_type': 'test'
+        },
+        {
+            'title': 'Sample Article: The Future of AI Agents',
+            'url': 'https://example.com/ai-agents',
+            'description': 'This is what a typical digest item would look like with a description preview.',
+            'relevance_score': 85,
+            'content_type': 'article'
+        }
+    ]
+
+    digest_html = generate_digest_html(ADMIN_EMAIL, sample_contents)
+    timestamp = int(time.time())
+
+    payload = {
+        'email': ADMIN_EMAIL,
+        'digest_html': digest_html,
+        'timestamp': timestamp,
+        'is_test': True
+    }
+
+    payload_json = json.dumps(payload, sort_keys=True)
+    signature = generate_test_email_signature(payload_json, timestamp)
+
+    return jsonify({
+        'payload': payload,
+        'signature': signature
+    }), 200
+
+
 @admin_bp.route('/users/<int:user_id>', methods=['DELETE'])
 @admin_required
 def delete_user(user_id):
