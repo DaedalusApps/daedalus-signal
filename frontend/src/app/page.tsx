@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -24,7 +23,6 @@ declare global {
 }
 
 export default function Home() {
-    const router = useRouter();
     const [showLogin, setShowLogin] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -126,23 +124,12 @@ export default function Home() {
             const data = await response.json();
 
             if (!response.ok) {
-                // Check if verification is required
-                if (data.verification_required) {
-                    router.push(`/verify?email=${encodeURIComponent(data.email)}`);
-                    return;
-                }
                 setError(data.error || 'Something went wrong');
                 // Reset Turnstile on error
                 if (widgetIdRef.current && window.turnstile) {
                     window.turnstile.reset(widgetIdRef.current);
                     setTurnstileToken('');
                 }
-                return;
-            }
-
-            // Check if verification is required (for registration)
-            if (data.verification_required) {
-                router.push(`/verify?email=${encodeURIComponent(data.email)}`);
                 return;
             }
 

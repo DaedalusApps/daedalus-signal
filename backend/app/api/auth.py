@@ -2,18 +2,12 @@
 Authentication API endpoints
 """
 import requests
-from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from app.database import get_session, close_session
 from app.models import User, Digest, Feedback, VerificationCode
 from app.security.auth import hash_password, verify_password, login_required
 from app import limiter
 from app.config import RATE_LIMIT_LOGIN, TURNSTILE_SECRET_KEY
-from app.email.verification import (
-    generate_verification_code,
-    get_code_expiry,
-    send_verification_email
-)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -39,31 +33,6 @@ def verify_turnstile(token: str) -> bool:
     except Exception as e:
         print(f"Turnstile verification error: {e}")
         return False
-
-
-def _create_and_send_verification_code(db, user_id: int, email: str, code_type: str) -> bool:
-    """Create a verification code and send it via email."""
-    # Invalidate any existing codes for this email and type
-    db.query(VerificationCode).filter_by(
-        email=email,
-        code_type=code_type,
-        used=False
-    ).update({'used': True})
-
-    # Generate new code
-    code = generate_verification_code()
-    verification = VerificationCode(
-        user_id=user_id,
-        email=email,
-        code=code,
-        code_type=code_type,
-        expires_at=get_code_expiry()
-    )
-    db.add(verification)
-    db.commit()
-
-    # Send email
-    return send_verification_email(email, code, code_type)
 
 
 @auth_bp.route('/register', methods=['POST'])
@@ -95,22 +64,21 @@ def register():
         if existing:
             return jsonify({'error': 'Email already registered'}), 409
 
+        # Account is immediately verified after passing CAPTCHA
         user = User(
             email=email,
             password_hash=hash_password(password),
-            email_verified=False
+            email_verified=True
         )
         db.add(user)
         db.commit()
 
-        # Create and send verification code
-        _create_and_send_verification_code(db, user.id, email, 'email_verify')
+        # Log the user in immediately
+        session['user_id'] = user.id
 
-        # Don't log in the user yet - they need to verify email first
         return jsonify({
-            'message': 'Registration successful. Please check your email for verification code.',
-            'verification_required': True,
-            'email': email
+            'message': 'Registration successful',
+            'user': user.to_dict()
         }), 201
     except Exception as e:
         db.rollback()
@@ -142,106 +110,8 @@ def login():
         if not user.is_active:
             return jsonify({'error': 'Account is disabled'}), 403
 
-        # Check if email is verified
-        if not user.email_verified:
-            # Send a new verification code
-            _create_and_send_verification_code(db, user.id, email, 'email_verify')
-            return jsonify({
-                'error': 'Email not verified',
-                'verification_required': True,
-                'email': email
-            }), 403
-
         session['user_id'] = user.id
         return jsonify({'user': user.to_dict()}), 200
-    finally:
-        close_session(db)
-
-
-@auth_bp.route('/verify-email', methods=['POST'])
-@limiter.limit(RATE_LIMIT_LOGIN)
-def verify_email():
-    """Verify email with 6-digit code."""
-    data = request.get_json()
-
-    if not data or not data.get('email') or not data.get('code'):
-        return jsonify({'error': 'Email and code required'}), 400
-
-    email = data['email'].lower().strip()
-    code = data['code'].strip()
-
-    db = get_session()
-    try:
-        # Find the verification code
-        verification = db.query(VerificationCode).filter_by(
-            email=email,
-            code=code,
-            code_type='email_verify',
-            used=False
-        ).first()
-
-        if not verification:
-            return jsonify({'error': 'Invalid verification code'}), 400
-
-        # Check expiry
-        if datetime.utcnow() > verification.expires_at:
-            return jsonify({'error': 'Verification code has expired'}), 400
-
-        # Mark code as used
-        verification.used = True
-
-        # Mark user as verified
-        user = db.query(User).filter_by(email=email).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-
-        user.email_verified = True
-        db.commit()
-
-        # Log the user in
-        session['user_id'] = user.id
-        return jsonify({
-            'message': 'Email verified successfully',
-            'user': user.to_dict()
-        }), 200
-    except Exception as e:
-        db.rollback()
-        print(f"Verify email error: {e}")
-        return jsonify({'error': 'Verification failed. Please try again.'}), 500
-    finally:
-        close_session(db)
-
-
-@auth_bp.route('/resend-verification', methods=['POST'])
-@limiter.limit("3 per minute")
-def resend_verification():
-    """Resend verification code."""
-    data = request.get_json()
-
-    if not data or not data.get('email'):
-        return jsonify({'error': 'Email required'}), 400
-
-    email = data['email'].lower().strip()
-
-    db = get_session()
-    try:
-        user = db.query(User).filter_by(email=email).first()
-
-        if not user:
-            # Don't reveal whether email exists
-            return jsonify({'message': 'If the email exists, a verification code has been sent.'}), 200
-
-        if user.email_verified:
-            return jsonify({'error': 'Email is already verified'}), 400
-
-        # Create and send new verification code
-        _create_and_send_verification_code(db, user.id, email, 'email_verify')
-
-        return jsonify({'message': 'Verification code sent'}), 200
-    except Exception as e:
-        db.rollback()
-        print(f"Resend verification error: {e}")
-        return jsonify({'error': 'Failed to send verification code. Please try again.'}), 500
     finally:
         close_session(db)
 
@@ -249,82 +119,37 @@ def resend_verification():
 @auth_bp.route('/forgot-password', methods=['POST'])
 @limiter.limit("3 per minute")
 def forgot_password():
-    """Initiate password reset."""
+    """Submit a password reset request to admin."""
     data = request.get_json()
 
     if not data or not data.get('email'):
         return jsonify({'error': 'Email required'}), 400
 
     email = data['email'].lower().strip()
+    message = data.get('message', '').strip()
 
     db = get_session()
     try:
+        # Create a feedback entry for password reset request
         user = db.query(User).filter_by(email=email).first()
 
-        # Always return success to prevent email enumeration
-        if user:
-            _create_and_send_verification_code(db, user.id, email, 'password_reset')
+        feedback = Feedback(
+            user_id=user.id if user else None,
+            email=email,
+            message=message or 'Password reset requested',
+            feedback_type='password_reset',
+            status='pending'
+        )
+        db.add(feedback)
+        db.commit()
 
         return jsonify({
-            'message': 'If the email exists, a password reset code has been sent.'
+            'message': 'Your password reset request has been submitted. An administrator will review it and contact you.'
         }), 200
     except Exception as e:
         db.rollback()
         print(f"Forgot password error: {e}")
-        return jsonify({'error': 'Failed to process request. Please try again.'}), 500
-    finally:
-        close_session(db)
-
-
-@auth_bp.route('/reset-password', methods=['POST'])
-@limiter.limit(RATE_LIMIT_LOGIN)
-def reset_password():
-    """Reset password with verification code."""
-    data = request.get_json()
-
-    if not data or not data.get('email') or not data.get('code') or not data.get('new_password'):
-        return jsonify({'error': 'Email, code, and new password required'}), 400
-
-    email = data['email'].lower().strip()
-    code = data['code'].strip()
-    new_password = data['new_password']
-
-    if len(new_password) < 8:
-        return jsonify({'error': 'Password must be at least 8 characters'}), 400
-
-    db = get_session()
-    try:
-        # Find the verification code
-        verification = db.query(VerificationCode).filter_by(
-            email=email,
-            code=code,
-            code_type='password_reset',
-            used=False
-        ).first()
-
-        if not verification:
-            return jsonify({'error': 'Invalid reset code'}), 400
-
-        # Check expiry
-        if datetime.utcnow() > verification.expires_at:
-            return jsonify({'error': 'Reset code has expired'}), 400
-
-        # Mark code as used
-        verification.used = True
-
-        # Update user password
-        user = db.query(User).filter_by(email=email).first()
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-
-        user.password_hash = hash_password(new_password)
-        db.commit()
-
-        return jsonify({'message': 'Password reset successfully'}), 200
-    except Exception as e:
-        db.rollback()
-        print(f"Reset password error: {e}")
-        return jsonify({'error': 'Password reset failed. Please try again.'}), 500
+        return jsonify({'error': 'Failed to submit request. Please try again.'}), 500
     finally:
         close_session(db)
 

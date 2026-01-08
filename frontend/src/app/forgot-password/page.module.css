@@ -81,6 +81,49 @@
     width: 100%;
 }
 
+.notice {
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: var(--text-secondary);
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+    text-align: left;
+}
+
+.notice strong {
+    color: var(--accent-primary);
+}
+
+.textarea {
+    width: 100%;
+    min-height: 80px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.successBox {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #86efac;
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.successBox p {
+    margin: 0;
+}
+
+.successNote {
+    margin-top: 0.75rem !important;
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
 .backLink {
     color: var(--text-muted);
     font-size: 0.875rem;
