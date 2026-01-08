@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-function ResetPasswordContent() {
+export default function ResetPasswordPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const email = searchParams.get('email') || '';
@@ -227,13 +227,5 @@ function ResetPasswordContent() {
                 </Link>
             </div>
         </main>
-    );
-}
-
-export default function ResetPasswordPage() {
-    return (
-        <Suspense fallback={<div className={styles.main}><div className={styles.card}>Loading...</div></div>}>
-            <ResetPasswordContent />
-        </Suspense>
     );
 }
