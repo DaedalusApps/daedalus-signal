@@ -1,37 +1,148 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
+
+declare global {
+    interface Window {
+        turnstile?: {
+            render: (container: string | HTMLElement, options: {
+                sitekey: string;
+                callback: (token: string) => void;
+                'error-callback'?: () => void;
+                'expired-callback'?: () => void;
+            }) => string;
+            reset: (widgetId: string) => void;
+            remove: (widgetId: string) => void;
+        };
+    }
+}
 
 export default function Home() {
+    const router = useRouter();
     const [showLogin, setShowLogin] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isRegister, setIsRegister] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState('');
+    const turnstileRef = useRef<HTMLDivElement>(null);
+    const widgetIdRef = useRef<string | null>(null);
+
+    // Load Turnstile script
+    useEffect(() => {
+        if (!TURNSTILE_SITE_KEY) return;
+
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+
+        return () => {
+            document.head.removeChild(script);
+        };
+    }, []);
+
+    // Render Turnstile widget when in register mode
+    useEffect(() => {
+        if (!TURNSTILE_SITE_KEY || !isRegister || !showLogin) {
+            // Clean up widget when not in register mode
+            if (widgetIdRef.current && window.turnstile) {
+                window.turnstile.remove(widgetIdRef.current);
+                widgetIdRef.current = null;
+            }
+            setTurnstileToken('');
+            return;
+        }
+
+        const renderWidget = () => {
+            if (turnstileRef.current && window.turnstile && !widgetIdRef.current) {
+                widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+                    sitekey: TURNSTILE_SITE_KEY,
+                    callback: (token: string) => {
+                        setTurnstileToken(token);
+                    },
+                    'error-callback': () => {
+                        setError('CAPTCHA error. Please try again.');
+                        setTurnstileToken('');
+                    },
+                    'expired-callback': () => {
+                        setTurnstileToken('');
+                    }
+                });
+            }
+        };
+
+        // Wait for script to load
+        const checkTurnstile = setInterval(() => {
+            if (window.turnstile) {
+                clearInterval(checkTurnstile);
+                renderWidget();
+            }
+        }, 100);
+
+        return () => {
+            clearInterval(checkTurnstile);
+            if (widgetIdRef.current && window.turnstile) {
+                window.turnstile.remove(widgetIdRef.current);
+                widgetIdRef.current = null;
+            }
+        };
+    }, [isRegister, showLogin]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
+        // Check Turnstile token for registration
+        if (isRegister && TURNSTILE_SITE_KEY && !turnstileToken) {
+            setError('Please complete the CAPTCHA verification');
+            setLoading(false);
+            return;
+        }
+
         try {
             const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
+            const body: Record<string, string> = { email, password };
+            if (isRegister && turnstileToken) {
+                body.turnstile_token = turnstileToken;
+            }
+
             const response = await fetch(`${API_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify(body),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
+                // Check if verification is required
+                if (data.verification_required) {
+                    router.push(`/verify?email=${encodeURIComponent(data.email)}`);
+                    return;
+                }
                 setError(data.error || 'Something went wrong');
+                // Reset Turnstile on error
+                if (widgetIdRef.current && window.turnstile) {
+                    window.turnstile.reset(widgetIdRef.current);
+                    setTurnstileToken('');
+                }
+                return;
+            }
+
+            // Check if verification is required (for registration)
+            if (data.verification_required) {
+                router.push(`/verify?email=${encodeURIComponent(data.email)}`);
                 return;
             }
 
@@ -118,10 +229,19 @@ export default function Home() {
                                     minLength={8}
                                     required
                                 />
+
+                                {/* Turnstile CAPTCHA - only shown for registration */}
+                                {isRegister && TURNSTILE_SITE_KEY && (
+                                    <div
+                                        ref={turnstileRef}
+                                        className={styles.turnstile}
+                                    />
+                                )}
+
                                 <button
                                     type="submit"
                                     className="btn btn-primary"
-                                    disabled={loading}
+                                    disabled={loading || (isRegister && !!TURNSTILE_SITE_KEY && !turnstileToken)}
                                 >
                                     {loading ? 'Please wait...' : (isRegister ? 'Create Account' : 'Sign In')}
                                 </button>
@@ -133,6 +253,12 @@ export default function Home() {
                                     {isRegister ? 'Sign In' : 'Register'}
                                 </button>
                             </p>
+
+                            {!isRegister && (
+                                <p className={styles.forgotPassword}>
+                                    <Link href="/forgot-password">Forgot password?</Link>
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>

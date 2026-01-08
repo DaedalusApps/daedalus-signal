@@ -46,6 +46,12 @@ SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "noreply@daedalusapps.com")
 
+# Cloudflare Turnstile CAPTCHA
+TURNSTILE_SECRET_KEY = os.getenv("TURNSTILE_SECRET_KEY", "")
+
+# Verification codes
+VERIFICATION_CODE_EXPIRY_MINUTES = 15
+
 # User limits
 MAX_SOURCES_PER_USER = 10
 MAX_TAGS_PER_USER = 20
