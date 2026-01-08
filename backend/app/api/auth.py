@@ -3,7 +3,7 @@ Authentication API endpoints
 """
 from flask import Blueprint, request, jsonify, session
 from app.database import get_session, close_session
-from app.models import User
+from app.models import User, Digest, Feedback
 from app.security.auth import hash_password, verify_password, login_required
 from app import limiter
 from app.config import RATE_LIMIT_LOGIN
@@ -140,11 +140,15 @@ def delete_account():
             return jsonify({'error': 'Admin accounts cannot be deleted this way'}), 400
         
         email = user.email
-        
+
         # Clear associations before deleting to avoid FK constraints
         user.sources.clear()
         user.tags.clear()
-        
+
+        # Delete related records that have FK to user
+        db.query(Digest).filter_by(user_id=user.id).delete()
+        db.query(Feedback).filter_by(user_id=user.id).delete()
+
         db.delete(user)
         db.commit()
         session.pop('user_id', None)
