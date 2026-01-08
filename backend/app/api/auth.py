@@ -140,6 +140,11 @@ def delete_account():
             return jsonify({'error': 'Admin accounts cannot be deleted this way'}), 400
         
         email = user.email
+        
+        # Clear associations before deleting to avoid FK constraints
+        user.sources.clear()
+        user.tags.clear()
+        
         db.delete(user)
         db.commit()
         session.pop('user_id', None)
