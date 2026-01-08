@@ -2,6 +2,11 @@
 DreamHost Worker Configuration
 """
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env file from the same directory as this config
+load_dotenv(Path(__file__).parent / '.env')
 
 # PythonAnywhere API configuration
 PA_API_URL = os.getenv("PA_API_URL", "https://your-username.pythonanywhere.com")
