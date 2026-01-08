@@ -62,9 +62,10 @@ export default function Dashboard() {
         }
     };
 
-    const filteredContent = filter === 'all'
+    const filteredContent = (filter === 'all'
         ? content
-        : content.filter(c => c.source?.source_type === filter);
+        : content.filter(c => c.source?.source_type === filter)
+    ).sort((a, b) => b.relevance_score - a.relevance_score);
 
     if (loading) {
         return (
