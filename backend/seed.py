@@ -53,14 +53,17 @@ def seed_default_sources():
         {'name': '@GroqInc', 'url': 'https://x.com/GroqInc', 'source_type': 'twitter'},
         {'name': '@manusai', 'url': 'https://x.com/manaboroshii', 'source_type': 'twitter'},
         
-        # YouTube
-        {'name': 'Two Minute Papers', 'url': 'https://www.youtube.com/@TwoMinutePapers', 'source_type': 'youtube'},
-        {'name': 'Yannic Kilcher', 'url': 'https://www.youtube.com/@YannicKilcher', 'source_type': 'youtube'},
-        {'name': 'AI Explained', 'url': 'https://www.youtube.com/@aiexplained-official', 'source_type': 'youtube'},
-        {'name': 'Lex Fridman', 'url': 'https://www.youtube.com/@lexfridman', 'source_type': 'youtube'},
-        {'name': 'Computerphile', 'url': 'https://www.youtube.com/@Computerphile', 'source_type': 'youtube'},
+        # YouTube - channels for the same accounts (from defaults.md)
+        {'name': 'Andrej Karpathy', 'url': 'https://www.youtube.com/c/AndrejKarpathy', 'source_type': 'youtube'},
+        {'name': 'Anthropic', 'url': 'https://www.youtube.com/@anthropic-ai', 'source_type': 'youtube'},
+        {'name': 'Mistral AI', 'url': 'https://www.youtube.com/@MistralAIOfficial', 'source_type': 'youtube'},
+        {'name': 'Cursor', 'url': 'https://www.youtube.com/@cursor_ai', 'source_type': 'youtube'},
+        {'name': 'Steve Yegge', 'url': 'https://www.youtube.com/steveyegge', 'source_type': 'youtube'},
+        {'name': 'LangChain', 'url': 'https://www.youtube.com/@LangChain', 'source_type': 'youtube'},
+        {'name': 'Groq', 'url': 'https://www.youtube.com/c/GroqInc', 'source_type': 'youtube'},
+        {'name': 'Manus AI', 'url': 'https://www.youtube.com/@Manus-AI', 'source_type': 'youtube'},
         
-        # GitHub and LinkedIn - Future features (disabled in UI)
+        # Note: bcherny and emollick YouTube links are not channel URLs, skipped
     ]
     
     db = get_session()
@@ -128,10 +131,39 @@ def seed_default_tags():
         close_session(db)
 
 
+def cleanup_disabled_sources():
+    """Remove GitHub and LinkedIn sources (disabled features)."""
+    db = get_session()
+    try:
+        # Find all GitHub and LinkedIn sources
+        disabled_sources = db.query(Source).filter(
+            Source.source_type.in_(['github', 'linkedin'])
+        ).all()
+        
+        count = len(disabled_sources)
+        if count > 0:
+            for source in disabled_sources:
+                # Remove from any user associations first
+                source.users.clear()
+                db.delete(source)
+            db.commit()
+            print(f"  Removed {count} disabled source(s) (GitHub/LinkedIn)")
+        else:
+            print("  No disabled sources to remove")
+    except Exception as e:
+        db.rollback()
+        print(f"  Error cleaning up sources: {e}")
+    finally:
+        close_session(db)
+
+
 def main():
     """Run the seeder."""
     print("Initializing database...")
     init_db()
+    
+    print("\nCleaning up disabled sources (GitHub/LinkedIn)...")
+    cleanup_disabled_sources()
     
     print("\nSeeding admin user...")
     seed_admin_user()

@@ -52,6 +52,15 @@
     color: white;
 }
 
+.filterBtn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.filterBtn.disabled:hover {
+    color: var(--text-secondary);
+}
+
 /* Loading */
 .loading {
     display: flex;

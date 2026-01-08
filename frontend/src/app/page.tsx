@@ -60,7 +60,7 @@ export default function Home() {
 
                     <p className={styles.subtitle}>
                         Cut through the noise. Surface the signal. Stay ahead of the frontier
-                        with curated content from YouTube, X, LinkedIn, and GitHub.
+                        with curated content from YouTube and X.
                     </p>
 
                     <div className={styles.features}>
@@ -154,13 +154,15 @@ export default function Home() {
                         <span className={styles.sourceIcon}>𝕏</span>
                         <span>X (Twitter)</span>
                     </div>
-                    <div className={`${styles.sourceCard} ${styles.linkedin}`}>
+                    <div className={`${styles.sourceCard} ${styles.linkedin} ${styles.comingSoon}`}>
                         <span className={styles.sourceIcon}>in</span>
                         <span>LinkedIn</span>
+                        <span className={styles.badge}>Coming Soon</span>
                     </div>
-                    <div className={`${styles.sourceCard} ${styles.github}`}>
+                    <div className={`${styles.sourceCard} ${styles.github} ${styles.comingSoon}`}>
                         <span className={styles.sourceIcon}>⌨️</span>
                         <span>GitHub</span>
+                        <span className={styles.badge}>Coming Soon</span>
                     </div>
                 </div>
             </section>

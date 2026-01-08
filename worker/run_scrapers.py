@@ -405,10 +405,13 @@ class GitHubScraper(BaseScraper):
 
 
 # Map source types to scraper classes
+# Only YouTube and Twitter are currently supported
+# LinkedIn and GitHub are future features
 SCRAPERS = {
     'youtube': YouTubeScraper,
     'twitter': TwitterScraper,
-    'github': GitHubScraper,
+    # 'github': GitHubScraper,    # Coming soon
+    # 'linkedin': LinkedInScraper, # Coming soon
 }
 
 

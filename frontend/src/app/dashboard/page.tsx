@@ -95,26 +95,28 @@ export default function Dashboard() {
                             All
                         </button>
                         <button
-                            className={`${styles.filterBtn} ${filter === 'youtube' ? styles.active : ''}`}
-                            onClick={() => setFilter('youtube')}
-                        >
-                            YouTube
-                        </button>
-                        <button
                             className={`${styles.filterBtn} ${filter === 'twitter' ? styles.active : ''}`}
                             onClick={() => setFilter('twitter')}
                         >
                             X
                         </button>
                         <button
-                            className={`${styles.filterBtn} ${filter === 'linkedin' ? styles.active : ''}`}
-                            onClick={() => setFilter('linkedin')}
+                            className={`${styles.filterBtn} ${filter === 'youtube' ? styles.active : ''}`}
+                            onClick={() => setFilter('youtube')}
+                        >
+                            YouTube
+                        </button>
+                        <button
+                            className={`${styles.filterBtn} ${styles.disabled}`}
+                            title="Coming Soon"
+                            disabled
                         >
                             LinkedIn
                         </button>
                         <button
-                            className={`${styles.filterBtn} ${filter === 'github' ? styles.active : ''}`}
-                            onClick={() => setFilter('github')}
+                            className={`${styles.filterBtn} ${styles.disabled}`}
+                            title="Coming Soon"
+                            disabled
                         >
                             GitHub
                         </button>

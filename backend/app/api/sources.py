@@ -44,8 +44,13 @@ def add_source():
         return jsonify({'error': 'Name, URL, and source_type required'}), 400
     
     source_type = data['source_type']
-    if source_type not in ['youtube', 'twitter', 'linkedin', 'github']:
-        return jsonify({'error': 'Invalid source type'}), 400
+    
+    # Only YouTube and Twitter are currently supported
+    if source_type in ['linkedin', 'github']:
+        return jsonify({'error': f'{source_type.capitalize()} sources coming soon!'}), 400
+    
+    if source_type not in ['youtube', 'twitter']:
+        return jsonify({'error': 'Invalid source type. Supported: youtube, twitter'}), 400
     
     db = get_session()
     try:
