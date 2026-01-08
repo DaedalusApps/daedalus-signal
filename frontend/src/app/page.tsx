@@ -185,14 +185,6 @@ export default function Home() {
                                 Get Started
                                 <span>→</span>
                             </button>
-                            <a
-                                href="https://ko-fi.com/daedalusapps"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={styles.kofi}
-                            >
-                                ☕ Support on Ko-fi
-                            </a>
                         </div>
                     ) : (
                         <div className={styles.loginCard}>
@@ -285,10 +277,6 @@ export default function Home() {
                 <p>© {new Date().getFullYear()} DaedalusApps. Built for the tech community.</p>
                 <div className={styles.footerLinks}>
                     <Link href="/feedback">Feedback</Link>
-                    <span>•</span>
-                    <a href="https://ko-fi.com/daedalusapps" target="_blank" rel="noopener noreferrer">
-                        Ko-fi
-                    </a>
                 </div>
             </footer>
         </main>
