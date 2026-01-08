@@ -1,11 +1,11 @@
 <?php
 /**
  * DreamHost PHP Shim for browser-triggered test emails
- * Receives signed payload from frontend, sends email via local PHP mail
+ * Receives signed payload from frontend, sends email via SMTP
  *
  * Deployment:
  * 1. Upload this file to your DreamHost web directory
- * 2. Set SECRET_KEY environment variable (must match PA's SECRET_KEY)
+ * 2. Set environment variables in .htaccess (SECRET_KEY, SMTP_*)
  * 3. Configure allowed origins below
  */
 
@@ -123,27 +123,119 @@ if (!$digest_html) {
 // Build email
 $subject = $is_test ? 'Test Email - DaedalusSignal Digest' : 'DaedalusSignal Daily Digest';
 
-// Get from address from environment or use default
+// Get SMTP settings from environment
+$smtp_host = getenv('SMTP_HOST') ?: 'mail.signal.daedalusapps.com';
+$smtp_port = getenv('SMTP_PORT') ?: 587;
+$smtp_user = getenv('SMTP_USER') ?: '';
+$smtp_pass = getenv('SMTP_PASSWORD') ?: '';
 $smtp_from = getenv('SMTP_FROM') ?: 'noreply@signal.daedalusapps.com';
 
-$headers = [
-    'MIME-Version: 1.0',
-    'Content-type: text/html; charset=utf-8',
-    "From: DaedalusSignal <$smtp_from>",
-    "Reply-To: $smtp_from",
-    'X-Mailer: DaedalusSignal-Worker'
-];
+/**
+ * Send email via SMTP with authentication
+ */
+function send_smtp_email($to, $subject, $html_body, $from, $host, $port, $user, $pass) {
+    $errors = [];
 
-// Send email using PHP mail()
-$success = mail($to, $subject, $digest_html, implode("\r\n", $headers));
+    // Connect to SMTP server
+    $socket = @fsockopen($host, $port, $errno, $errstr, 30);
+    if (!$socket) {
+        return ['success' => false, 'error' => "Connection failed: $errstr ($errno)"];
+    }
 
-if ($success) {
-    echo json_encode([
-        'message' => "Email sent successfully to $to",
-        'email' => $to,
-        'is_test' => $is_test
-    ]);
+    // Helper to send command and get response
+    $send_cmd = function($cmd = null) use ($socket, &$errors) {
+        if ($cmd !== null) {
+            fwrite($socket, $cmd . "\r\n");
+        }
+        $response = '';
+        while ($line = fgets($socket, 515)) {
+            $response .= $line;
+            if (substr($line, 3, 1) == ' ') break;
+        }
+        return $response;
+    };
+
+    // SMTP conversation
+    $send_cmd();  // Read greeting
+    $send_cmd("EHLO " . gethostname());
+
+    // Start TLS
+    $send_cmd("STARTTLS");
+    stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+    $send_cmd("EHLO " . gethostname());
+
+    // Authenticate
+    if ($user && $pass) {
+        $send_cmd("AUTH LOGIN");
+        $send_cmd(base64_encode($user));
+        $response = $send_cmd(base64_encode($pass));
+        if (strpos($response, '235') === false) {
+            fclose($socket);
+            return ['success' => false, 'error' => 'SMTP authentication failed'];
+        }
+    }
+
+    // Send email
+    $send_cmd("MAIL FROM:<$from>");
+    $send_cmd("RCPT TO:<$to>");
+    $send_cmd("DATA");
+
+    // Email headers and body
+    $headers = "From: DaedalusSignal <$from>\r\n";
+    $headers .= "To: $to\r\n";
+    $headers .= "Subject: $subject\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/html; charset=utf-8\r\n";
+    $headers .= "\r\n";
+
+    fwrite($socket, $headers . $html_body . "\r\n.\r\n");
+    $response = $send_cmd();
+
+    $send_cmd("QUIT");
+    fclose($socket);
+
+    if (strpos($response, '250') !== false) {
+        return ['success' => true];
+    } else {
+        return ['success' => false, 'error' => "Send failed: $response"];
+    }
+}
+
+// Try SMTP first if credentials are set, fall back to mail()
+if ($smtp_user && $smtp_pass) {
+    $result = send_smtp_email($to, $subject, $digest_html, $smtp_from, $smtp_host, $smtp_port, $smtp_user, $smtp_pass);
+    if ($result['success']) {
+        echo json_encode([
+            'message' => "Email sent successfully to $to",
+            'email' => $to,
+            'is_test' => $is_test,
+            'method' => 'smtp'
+        ]);
+    } else {
+        http_response_code(500);
+        echo json_encode(['error' => 'SMTP error: ' . $result['error']]);
+    }
 } else {
-    http_response_code(500);
-    echo json_encode(['error' => 'Failed to send email. Check server mail configuration.']);
+    // Fallback to PHP mail()
+    $headers = [
+        'MIME-Version: 1.0',
+        'Content-type: text/html; charset=utf-8',
+        "From: DaedalusSignal <$smtp_from>",
+        "Reply-To: $smtp_from",
+        'X-Mailer: DaedalusSignal-Worker'
+    ];
+
+    $success = mail($to, $subject, $digest_html, implode("\r\n", $headers));
+
+    if ($success) {
+        echo json_encode([
+            'message' => "Email sent successfully to $to",
+            'email' => $to,
+            'is_test' => $is_test,
+            'method' => 'mail'
+        ]);
+    } else {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to send email. Check server mail configuration.']);
+    }
 }
