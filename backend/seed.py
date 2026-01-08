@@ -42,11 +42,11 @@ def seed_default_sources():
     """Seed default sources from PRD."""
     sources = [
         # X (Twitter)
-        {'name': '@OpenAI', 'url': 'https://twitter.com/OpenAI', 'source_type': 'twitter'},
-        {'name': '@AndrewYNg', 'url': 'https://twitter.com/AndrewYNg', 'source_type': 'twitter'},
-        {'name': '@ylecun', 'url': 'https://twitter.com/ylecun', 'source_type': 'twitter'},
-        {'name': '@karpathy', 'url': 'https://twitter.com/karpathy', 'source_type': 'twitter'},
-        {'name': '@huggingface', 'url': 'https://twitter.com/huggingface', 'source_type': 'twitter'},
+        {'name': '@OpenAI', 'url': 'https://x.com/OpenAI', 'source_type': 'twitter'},
+        {'name': '@AndrewYNg', 'url': 'https://x.com/AndrewYNg', 'source_type': 'twitter'},
+        {'name': '@ylecun', 'url': 'https://x.com/ylecun', 'source_type': 'twitter'},
+        {'name': '@karpathy', 'url': 'https://x.com/karpathy', 'source_type': 'twitter'},
+        {'name': '@huggingface', 'url': 'https://x.com/huggingface', 'source_type': 'twitter'},
         
         # GitHub
         {'name': 'openai/gym', 'url': 'https://github.com/openai/gym', 'source_type': 'github'},
