@@ -39,21 +39,19 @@ def seed_admin_user():
 
 
 def seed_default_sources():
-    """Seed default sources from PRD."""
+    """Seed default sources from defaults.md."""
     sources = [
-        # X (Twitter)
-        {'name': '@OpenAI', 'url': 'https://x.com/OpenAI', 'source_type': 'twitter'},
-        {'name': '@AndrewYNg', 'url': 'https://x.com/AndrewYNg', 'source_type': 'twitter'},
-        {'name': '@ylecun', 'url': 'https://x.com/ylecun', 'source_type': 'twitter'},
+        # X (Twitter) - ordered by external influence (from defaults.md)
         {'name': '@karpathy', 'url': 'https://x.com/karpathy', 'source_type': 'twitter'},
-        {'name': '@huggingface', 'url': 'https://x.com/huggingface', 'source_type': 'twitter'},
-        
-        # GitHub
-        {'name': 'openai/gym', 'url': 'https://github.com/openai/gym', 'source_type': 'github'},
-        {'name': 'huggingface/transformers', 'url': 'https://github.com/huggingface/transformers', 'source_type': 'github'},
-        {'name': 'deepmind/lab', 'url': 'https://github.com/deepmind/lab', 'source_type': 'github'},
-        {'name': 'langchain-ai/langchain', 'url': 'https://github.com/langchain-ai/langchain', 'source_type': 'github'},
-        {'name': 'microsoft/semantic-kernel', 'url': 'https://github.com/microsoft/semantic-kernel', 'source_type': 'github'},
+        {'name': '@AnthropicAI', 'url': 'https://x.com/AnthropicAI', 'source_type': 'twitter'},
+        {'name': '@MistralAI', 'url': 'https://x.com/MistralAI', 'source_type': 'twitter'},
+        {'name': '@cursor_ai', 'url': 'https://x.com/cursor_ai', 'source_type': 'twitter'},
+        {'name': '@Steve_Yegge', 'url': 'https://x.com/Steve_Yegge', 'source_type': 'twitter'},
+        {'name': '@emollick', 'url': 'https://x.com/emollick', 'source_type': 'twitter'},
+        {'name': '@bcherny', 'url': 'https://x.com/bcherny', 'source_type': 'twitter'},
+        {'name': '@langchain_oss', 'url': 'https://x.com/LangChainAI', 'source_type': 'twitter'},
+        {'name': '@GroqInc', 'url': 'https://x.com/GroqInc', 'source_type': 'twitter'},
+        {'name': '@manusai', 'url': 'https://x.com/manaboroshii', 'source_type': 'twitter'},
         
         # YouTube
         {'name': 'Two Minute Papers', 'url': 'https://www.youtube.com/@TwoMinutePapers', 'source_type': 'youtube'},
@@ -62,10 +60,7 @@ def seed_default_sources():
         {'name': 'Lex Fridman', 'url': 'https://www.youtube.com/@lexfridman', 'source_type': 'youtube'},
         {'name': 'Computerphile', 'url': 'https://www.youtube.com/@Computerphile', 'source_type': 'youtube'},
         
-        # LinkedIn (will use simulated data)
-        {'name': 'Yann LeCun', 'url': 'https://www.linkedin.com/in/yann-lecun', 'source_type': 'linkedin'},
-        {'name': 'Fei-Fei Li', 'url': 'https://www.linkedin.com/in/faboratory', 'source_type': 'linkedin'},
-        {'name': 'Andrej Karpathy', 'url': 'https://www.linkedin.com/in/andrej-karpathy', 'source_type': 'linkedin'},
+        # GitHub and LinkedIn - Future features (disabled in UI)
     ]
     
     db = get_session()
@@ -89,33 +84,30 @@ def seed_default_sources():
 
 
 def seed_default_tags():
-    """Seed default tags from PRD."""
+    """Seed default tags from defaults.md - ordered by external popularity."""
     tags = [
-        # General AI
-        {'name': 'ai', 'category': 'general'},
-        {'name': 'machine learning', 'category': 'general'},
-        {'name': 'deep learning', 'category': 'general'},
-        {'name': 'neural networks', 'category': 'general'},
-        {'name': 'llm', 'category': 'general'},
-        
-        # Agentic/Context
-        {'name': 'agentic systems', 'category': 'agentic'},
-        {'name': 'context engineering', 'category': 'agentic'},
-        {'name': 'prompt engineering', 'category': 'agentic'},
-        {'name': 'autonomous agents', 'category': 'agentic'},
-        {'name': 'ai agents', 'category': 'agentic'},
-        
-        # Tools/Frameworks
-        {'name': 'transformers', 'category': 'tools'},
-        {'name': 'langchain', 'category': 'tools'},
-        {'name': 'openai', 'category': 'tools'},
-        {'name': 'reinforcement learning', 'category': 'tools'},
-        {'name': 'workflow automation', 'category': 'tools'},
-        
-        # Research
-        {'name': 'ai research', 'category': 'research'},
-        {'name': 'frontier ai', 'category': 'research'},
-        {'name': 'explainable ai', 'category': 'research'},
+        # Ordered by external popularity (from defaults.md)
+        {'name': 'AI', 'category': 'general'},
+        {'name': 'ArtificialIntelligence', 'category': 'general'},
+        {'name': 'MachineLearning', 'category': 'general'},
+        {'name': 'DeepLearning', 'category': 'general'},
+        {'name': 'Tech', 'category': 'general'},
+        {'name': 'DataScience', 'category': 'general'},
+        {'name': 'Robotics', 'category': 'general'},
+        {'name': 'Coding', 'category': 'tools'},
+        {'name': 'Python', 'category': 'tools'},
+        {'name': 'Innovation', 'category': 'general'},
+        {'name': 'Startup', 'category': 'general'},
+        {'name': 'BigData', 'category': 'general'},
+        {'name': 'CloudComputing', 'category': 'tools'},
+        {'name': 'Programming', 'category': 'tools'},
+        {'name': 'Developer', 'category': 'tools'},
+        {'name': 'Analytics', 'category': 'general'},
+        {'name': 'DigitalTransformation', 'category': 'general'},
+        {'name': 'Automation', 'category': 'tools'},
+        {'name': 'Computerscience', 'category': 'general'},
+        {'name': 'Blockchain', 'category': 'general'},
+        {'name': 'IoT', 'category': 'general'},
     ]
     
     db = get_session()

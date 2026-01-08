@@ -23,7 +23,7 @@ export default function SourcesPage() {
     const [defaults, setDefaults] = useState<Source[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAdd, setShowAdd] = useState(false);
-    const [newSource, setNewSource] = useState({ name: '', url: '', source_type: 'youtube' });
+    const [newSource, setNewSource] = useState({ name: '', url: '', source_type: 'twitter' });
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -72,7 +72,7 @@ export default function SourcesPage() {
         }
 
         setSources([...sources, data.source]);
-        setNewSource({ name: '', url: '', source_type: 'youtube' });
+        setNewSource({ name: '', url: '', source_type: 'twitter' });
         setShowAdd(false);
     };
 
@@ -143,15 +143,40 @@ export default function SourcesPage() {
                         <h3>Add New Source</h3>
                         {error && <div className={pageStyles.error}>{error}</div>}
                         <form onSubmit={addSource} className={pageStyles.form}>
-                            <select
-                                value={newSource.source_type}
-                                onChange={(e) => setNewSource({ ...newSource, source_type: e.target.value })}
-                            >
-                                <option value="youtube">YouTube Channel</option>
-                                <option value="twitter">X (Twitter) Account</option>
-                                <option value="github">GitHub Repository</option>
-                                <option value="linkedin">LinkedIn Profile</option>
-                            </select>
+                            <div className={pageStyles.sourceTypeGroup}>
+                                <button
+                                    type="button"
+                                    className={`${pageStyles.sourceTypeBtn} ${newSource.source_type === 'twitter' ? pageStyles.active : ''}`}
+                                    onClick={() => setNewSource({ ...newSource, source_type: 'twitter' })}
+                                >
+                                    𝕏 X (Twitter)
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`${pageStyles.sourceTypeBtn} ${newSource.source_type === 'youtube' ? pageStyles.active : ''}`}
+                                    onClick={() => setNewSource({ ...newSource, source_type: 'youtube' })}
+                                >
+                                    ▶️ YouTube
+                                </button>
+                                <div className={pageStyles.disabledWrapper} title="Future feature">
+                                    <button
+                                        type="button"
+                                        className={`${pageStyles.sourceTypeBtn} ${pageStyles.disabled}`}
+                                        disabled
+                                    >
+                                        ⌨️ GitHub
+                                    </button>
+                                </div>
+                                <div className={pageStyles.disabledWrapper} title="Future feature">
+                                    <button
+                                        type="button"
+                                        className={`${pageStyles.sourceTypeBtn} ${pageStyles.disabled}`}
+                                        disabled
+                                    >
+                                        💼 LinkedIn
+                                    </button>
+                                </div>
+                            </div>
                             <input
                                 type="text"
                                 placeholder="Source name"

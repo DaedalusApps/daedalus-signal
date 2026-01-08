@@ -9,3 +9,4 @@ lxml>=5.0.0
 apscheduler>=3.10.0
 flask-limiter>=3.5.0
 fake-useragent>=1.4.0
+youtube-transcript-api>=0.6.0

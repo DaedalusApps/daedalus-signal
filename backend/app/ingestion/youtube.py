@@ -1,14 +1,24 @@
 """
-YouTube scraper - fetches public video information
+YouTube scraper - fetches public video information with transcript extraction
 """
 import re
 import json
-from datetime import datetime
 from app.ingestion.base import BaseScraper
+
+# Try to import transcript API, graceful fallback if not available
+try:
+    from youtube_transcript_api import YouTubeTranscriptApi
+    from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+    TRANSCRIPT_AVAILABLE = True
+except ImportError:
+    TRANSCRIPT_AVAILABLE = False
 
 
 class YouTubeScraper(BaseScraper):
-    """Scraper for YouTube channels."""
+    """Scraper for YouTube channels with transcript extraction."""
+    
+    # Limit to 5 videos per channel
+    MAX_VIDEOS_PER_CHANNEL = 5
     
     def get_source_type(self) -> str:
         return 'youtube'
@@ -51,7 +61,80 @@ class YouTubeScraper(BaseScraper):
         except Exception as e:
             print(f"YouTube scrape error: {e}")
         
-        return results[:10]  # Limit to 10 latest videos
+        # Limit to MAX_VIDEOS_PER_CHANNEL and fetch transcripts
+        limited_results = results[:self.MAX_VIDEOS_PER_CHANNEL]
+        
+        # Fetch transcripts for each video
+        for video in limited_results:
+            video['transcript'] = self._fetch_transcript(video.get('url', ''))
+        
+        return limited_results
+    
+    def _fetch_transcript(self, video_url: str) -> str:
+        """
+        Fetch transcript for a YouTube video.
+        Returns empty string if transcript is not available.
+        """
+        if not TRANSCRIPT_AVAILABLE:
+            return ''
+        
+        try:
+            # Extract video ID from URL
+            video_id = self._extract_video_id(video_url)
+            if not video_id:
+                return ''
+            
+            # Try to get transcript (prefer English, fall back to auto-generated)
+            try:
+                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+                
+                # Try to get manually created transcript first
+                try:
+                    transcript = transcript_list.find_manually_created_transcript(['en'])
+                except:
+                    # Fall back to auto-generated
+                    try:
+                        transcript = transcript_list.find_generated_transcript(['en'])
+                    except:
+                        # Try any available transcript
+                        transcript = transcript_list.find_transcript(['en', 'en-US', 'en-GB'])
+                
+                # Fetch and join transcript text
+                transcript_data = transcript.fetch()
+                full_text = ' '.join([entry['text'] for entry in transcript_data])
+                
+                # Limit transcript length to prevent huge storage
+                max_chars = 10000
+                if len(full_text) > max_chars:
+                    full_text = full_text[:max_chars] + '...'
+                
+                return full_text
+                
+            except (TranscriptsDisabled, NoTranscriptFound):
+                return ''
+                
+        except Exception as e:
+            print(f"Transcript fetch error for {video_url}: {e}")
+            return ''
+    
+    def _extract_video_id(self, url: str) -> str | None:
+        """Extract video ID from YouTube URL."""
+        if not url:
+            return None
+        
+        # Handle various URL formats
+        patterns = [
+            r'watch\?v=([a-zA-Z0-9_-]{11})',
+            r'youtu\.be/([a-zA-Z0-9_-]{11})',
+            r'embed/([a-zA-Z0-9_-]{11})',
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                return match.group(1)
+        
+        return None
     
     def _parse_videos(self, data: dict) -> list[dict]:
         """Parse videos from YouTube's JSON data."""
@@ -92,7 +175,8 @@ class YouTubeScraper(BaseScraper):
                 'description': description,
                 'url': f'https://www.youtube.com/watch?v={video_id}',
                 'content_type': 'video',
-                'published_at': None  # Would need additional parsing
+                'published_at': None,  # Would need additional parsing
+                'transcript': ''  # Will be filled in later
             }
         except Exception:
             return None
@@ -115,7 +199,8 @@ class YouTubeScraper(BaseScraper):
                         'description': '',
                         'url': f'https://www.youtube.com/watch?v={video_id}',
                         'content_type': 'video',
-                        'published_at': None
+                        'published_at': None,
+                        'transcript': ''  # Will be filled in later
                     })
         
         # Deduplicate by URL

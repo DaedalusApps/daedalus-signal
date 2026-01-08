@@ -4,27 +4,33 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import styles from './dashboard.module.css';
+import { Content } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-import { Content, User } from '@/types';
-
 export default function Dashboard() {
     const [content, setContent] = useState<Content[]>([]);
+    const [sourcesCount, setSourcesCount] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>('all');
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                // Fetch content feed
-                const contentRes = await fetch(`${API_URL}/api/content/feed`, {
-                    credentials: 'include',
-                });
+                // Fetch content feed and sources count in parallel
+                const [contentRes, sourcesRes] = await Promise.all([
+                    fetch(`${API_URL}/api/content/feed`, { credentials: 'include' }),
+                    fetch(`${API_URL}/api/sources`, { credentials: 'include' }),
+                ]);
 
                 if (contentRes.ok) {
                     const contentData = await contentRes.json();
                     setContent(contentData.feed || []);
+                }
+
+                if (sourcesRes.ok) {
+                    const sourcesData = await sourcesRes.json();
+                    setSourcesCount((sourcesData.sources || []).length);
                 }
             } catch (err) {
                 console.error('Failed to load data:', err);
@@ -117,12 +123,28 @@ export default function Dashboard() {
 
                 {filteredContent.length === 0 ? (
                     <div className={styles.empty}>
-                        <span className={styles.emptyIcon}>📭</span>
-                        <h3>No content yet</h3>
-                        <p>Add some sources to start seeing content in your feed.</p>
-                        <Link href="/dashboard/sources" className="btn btn-primary">
-                            Add Sources
-                        </Link>
+                        {sourcesCount > 0 ? (
+                            <>
+                                <span className={styles.emptyIcon}>⏳</span>
+                                <h3>Feed pending</h3>
+                                <p>
+                                    You have {sourcesCount} source{sourcesCount !== 1 ? 's' : ''} configured.
+                                    Your feed will populate on the next ingestion cycle.
+                                </p>
+                                <p className={styles.cycleInfo}>
+                                    Content is fetched every 6 hours. Check back soon!
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <span className={styles.emptyIcon}>📭</span>
+                                <h3>No content yet</h3>
+                                <p>Add some sources to start seeing content in your feed.</p>
+                                <Link href="/dashboard/sources" className="btn btn-primary">
+                                    Add Sources
+                                </Link>
+                            </>
+                        )}
                     </div>
                 ) : (
                     <div className={styles.contentGrid}>

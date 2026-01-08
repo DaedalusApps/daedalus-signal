@@ -33,11 +33,5 @@ def run_server():
         scheduler.shutdown()
 
 
-# Health check endpoint
-@app.route('/api/health')
-def health():
-    return {'status': 'healthy', 'service': 'daedalus-signal'}
-
-
 if __name__ == '__main__':
     run_server()

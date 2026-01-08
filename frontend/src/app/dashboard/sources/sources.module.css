@@ -124,6 +124,71 @@
     margin-bottom: 1rem;
 }
 
+/* Source Type Buttons */
+.sourceTypeGroup {
+    display: flex;
+    gap: 0.5rem;
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+}
+
+.sourceTypeBtn {
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sourceTypeBtn:hover:not(.disabled) {
+    color: var(--text-primary);
+    border-color: var(--accent-primary);
+}
+
+.sourceTypeBtn.active {
+    background: var(--accent-gradient);
+    color: white;
+    border-color: transparent;
+}
+
+.sourceTypeBtn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.disabledWrapper {
+    position: relative;
+}
+
+.disabledWrapper::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.4rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-fast);
+    margin-bottom: 0.5rem;
+}
+
+.disabledWrapper:hover::after {
+    opacity: 1;
+}
+
 @media (max-width: 768px) {
     .form {
         grid-template-columns: 1fr;
