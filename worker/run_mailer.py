@@ -5,6 +5,7 @@ Fetches digest payloads from PythonAnywhere and sends via local SMTP
 """
 import sys
 import smtplib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -40,12 +41,19 @@ def run_mailer():
 
     client = PAClient()
 
+    # PythonAnywhere free tier apps sleep - first request wakes them up, retry once
     try:
         digests = client.get_digests()
-        print(f"  Fetched {len(digests)} digest payloads from PythonAnywhere")
     except Exception as e:
-        print(f"  ERROR fetching digests: {e}")
-        sys.exit(1)
+        print(f"  First attempt failed (cold start): {e}")
+        time.sleep(5)
+        try:
+            digests = client.get_digests()
+        except Exception as e:
+            print(f"  ERROR fetching digests: {e}")
+            sys.exit(1)
+
+    print(f"  Fetched {len(digests)} digest payloads from PythonAnywhere")
 
     sent = 0
     failed = 0
