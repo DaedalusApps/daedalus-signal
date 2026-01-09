@@ -421,12 +421,19 @@ def run_all_scrapers():
 
     client = PAClient()
 
+    # PythonAnywhere free tier apps sleep - first request wakes them up, retry once
     try:
         sources = client.get_sources()
-        print(f"  Fetched {len(sources)} sources from PythonAnywhere")
     except Exception as e:
-        print(f"  ERROR fetching sources: {e}")
-        sys.exit(1)
+        print(f"  First attempt failed (cold start): {e}")
+        time.sleep(5)
+        try:
+            sources = client.get_sources()
+        except Exception as e:
+            print(f"  ERROR fetching sources: {e}")
+            sys.exit(1)
+
+    print(f"  Fetched {len(sources)} sources from PythonAnywhere")
 
     for source in sources:
         source_type = source['source_type']
