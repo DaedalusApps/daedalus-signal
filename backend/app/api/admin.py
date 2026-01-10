@@ -2,7 +2,6 @@
 Admin API endpoints
 """
 from flask import Blueprint, request, jsonify
-from sqlalchemy import func
 from app.database import get_session, close_session
 from app.models import User, Source, Tag, Content, Feedback
 from app.security.auth import admin_required
@@ -276,3 +275,94 @@ def unblock_email(blocklist_id):
         return jsonify({'error': 'Failed to unblock email'}), 500
     finally:
         close_session(db)
+
+
+@admin_bp.route('/trigger-scrape-payload', methods=['GET'])
+@admin_required
+def get_trigger_scrape_payload():
+    """
+    Generate a signed payload for browser-to-DreamHost scraper trigger.
+    Returns JSON with action and HMAC signature.
+    """
+    import json
+    import time
+    from app.security.worker import generate_test_email_signature
+    
+    timestamp = int(time.time())
+    
+    payload = {
+        'action': 'run_scrapers',
+        'timestamp': timestamp
+    }
+    
+    payload_json = json.dumps(payload, sort_keys=True)
+    signature = generate_test_email_signature(payload_json, timestamp)
+    
+    return jsonify({
+        'payload': payload,
+        'payload_json': payload_json,
+        'signature': signature
+    }), 200
+
+
+@admin_bp.route('/trigger-mailer-payload', methods=['GET'])
+@admin_required
+def get_trigger_mailer_payload():
+    """
+    Generate a signed payload for browser-to-DreamHost mailer trigger.
+    Returns JSON with action and HMAC signature.
+    """
+    import json
+    import time
+    from app.security.worker import generate_test_email_signature
+    
+    timestamp = int(time.time())
+    
+    payload = {
+        'action': 'run_mailer',
+        'timestamp': timestamp
+    }
+    
+    payload_json = json.dumps(payload, sort_keys=True)
+    signature = generate_test_email_signature(payload_json, timestamp)
+    
+    return jsonify({
+        'payload': payload,
+        'payload_json': payload_json,
+        'signature': signature
+    }), 200
+
+
+@admin_bp.route('/get-logs-payload', methods=['GET'])
+@admin_required
+def get_logs_payload():
+    """
+    Generate a signed payload for fetching logs from DreamHost.
+    Query param: log_type (scraper or mailer)
+    """
+    import json
+    import time
+    from app.security.worker import generate_test_email_signature
+    
+    log_type = request.args.get('log_type', 'scraper')
+    
+    # Validate log type
+    if log_type not in ['scraper', 'mailer']:
+        return jsonify({'error': 'Invalid log type'}), 400
+    
+    timestamp = int(time.time())
+    
+    payload = {
+        'action': 'get_logs',
+        'log_type': log_type,
+        'timestamp': timestamp
+    }
+    
+    payload_json = json.dumps(payload, sort_keys=True)
+    signature = generate_test_email_signature(payload_json, timestamp)
+    
+    return jsonify({
+        'payload': payload,
+        'payload_json': payload_json,
+        'signature': signature
+    }), 200

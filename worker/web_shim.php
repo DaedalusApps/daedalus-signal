@@ -74,8 +74,10 @@ if (abs(time() - $timestamp) > 600) {
 // The signature is HMAC-SHA256 of "timestamp:payload_json" using SECRET_KEY
 // Use the exact JSON string from Python if provided, otherwise fall back to PHP encoding
 
-function sort_array_keys_recursive(&$array) {
-    if (!is_array($array)) return;
+function sort_array_keys_recursive(&$array)
+{
+    if (!is_array($array))
+        return;
     ksort($array);
     foreach ($array as &$value) {
         if (is_array($value)) {
@@ -102,6 +104,106 @@ if (!hash_equals($expected_signature, $signature)) {
     echo json_encode(['error' => 'Invalid signature']);
     exit;
 }
+
+// Check for action type and route accordingly
+$action = $payload['action'] ?? 'send_email';
+
+// =========================================
+// ACTION: Get Logs
+// =========================================
+if ($action === 'get_logs') {
+    $script_dir = dirname(__FILE__);
+    $log_type = $payload['log_type'] ?? 'scraper';
+
+    // Validate log type to prevent path traversal
+    $allowed_logs = ['scraper', 'mailer'];
+    if (!in_array($log_type, $allowed_logs)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid log type']);
+        exit;
+    }
+
+    $log_file = $script_dir . '/' . $log_type . '.log';
+
+    if (!file_exists($log_file)) {
+        echo json_encode([
+            'log_type' => $log_type,
+            'content' => '(No log file yet - run the ' . $log_type . ' first)',
+            'lines' => 0
+        ]);
+        exit;
+    }
+
+    // Read last 100 lines of the log file
+    $lines = file($log_file, FILE_IGNORE_NEW_LINES);
+    $total_lines = count($lines);
+    $last_lines = array_slice($lines, -100);
+    $content = implode("\n", $last_lines);
+
+    echo json_encode([
+        'log_type' => $log_type,
+        'content' => $content,
+        'lines' => count($last_lines),
+        'total_lines' => $total_lines
+    ]);
+    exit;
+}
+
+// =========================================
+// ACTION: Run Scrapers
+// =========================================
+if ($action === 'run_scrapers') {
+    // Get the directory where this script lives
+    $script_dir = dirname(__FILE__);
+    $python_script = $script_dir . '/run_scrapers.py';
+
+    if (!file_exists($python_script)) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Scraper script not found']);
+        exit;
+    }
+
+    // Run the scraper in background (& at end) so we return immediately
+    $log_file = $script_dir . '/scraper.log';
+    $command = "cd " . escapeshellarg($script_dir) . " && python3 run_scrapers.py >> " . escapeshellarg($log_file) . " 2>&1 &";
+    exec($command, $output, $return_code);
+
+    echo json_encode([
+        'message' => 'Scraper started in background',
+        'status' => 'running'
+    ]);
+    exit;
+}
+
+// =========================================
+// ACTION: Run Mailer
+// =========================================
+if ($action === 'run_mailer') {
+    // Get the directory where this script lives
+    $script_dir = dirname(__FILE__);
+    $python_script = $script_dir . '/run_mailer.py';
+
+    if (!file_exists($python_script)) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Mailer script not found']);
+        exit;
+    }
+
+    // Run the mailer in background (& at end) so we return immediately
+    $log_file = $script_dir . '/mailer.log';
+    $command = "cd " . escapeshellarg($script_dir) . " && python3 run_mailer.py >> " . escapeshellarg($log_file) . " 2>&1 &";
+    exec($command, $output, $return_code);
+
+    echo json_encode([
+        'message' => 'Mailer started in background',
+        'status' => 'running'
+    ]);
+    exit;
+}
+
+// =========================================
+// ACTION: Send Email (default)
+// =========================================
 
 // Extract email details
 $to = $payload['email'] ?? '';
@@ -133,7 +235,8 @@ $smtp_from = getenv('SMTP_FROM') ?: 'noreply@signal.daedalusapps.com';
 /**
  * Send email via SMTP with authentication
  */
-function send_smtp_email($to, $subject, $html_body, $from, $host, $port, $user, $pass) {
+function send_smtp_email($to, $subject, $html_body, $from, $host, $port, $user, $pass)
+{
     $errors = [];
 
     // Connect to SMTP server
@@ -143,14 +246,15 @@ function send_smtp_email($to, $subject, $html_body, $from, $host, $port, $user, 
     }
 
     // Helper to send command and get response
-    $send_cmd = function($cmd = null) use ($socket, &$errors) {
+    $send_cmd = function ($cmd = null) use ($socket, &$errors) {
         if ($cmd !== null) {
             fwrite($socket, $cmd . "\r\n");
         }
         $response = '';
         while ($line = fgets($socket, 515)) {
             $response .= $line;
-            if (substr($line, 3, 1) == ' ') break;
+            if (substr($line, 3, 1) == ' ')
+                break;
         }
         return $response;
     };

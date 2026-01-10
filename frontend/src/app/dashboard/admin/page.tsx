@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
+import { User } from '@/types';
 import styles from '../dashboard.module.css';
 import pageStyles from './admin.module.css';
 
@@ -16,8 +17,6 @@ interface Stats {
     contents: number;
     feedback_pending: number;
 }
-
-import { User } from '@/types';
 
 interface Feedback {
     id: number;
@@ -34,9 +33,17 @@ export default function AdminPage() {
     const [feedback, setFeedback] = useState<Feedback[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'feedback'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'feedback' | 'logs'>('overview');
     const [testEmailLoading, setTestEmailLoading] = useState(false);
     const [testEmailMessage, setTestEmailMessage] = useState('');
+    const [scraperLoading, setScraperLoading] = useState(false);
+    const [scraperMessage, setScraperMessage] = useState('');
+    const [mailerLoading, setMailerLoading] = useState(false);
+    const [mailerMessage, setMailerMessage] = useState('');
+    const [logContent, setLogContent] = useState('');
+    const [logType, setLogType] = useState<'scraper' | 'mailer'>('scraper');
+    const [logLoading, setLogLoading] = useState(false);
+    const [logInfo, setLogInfo] = useState('');
 
 
     useEffect(() => {
@@ -131,6 +138,138 @@ export default function AdminPage() {
         }
     };
 
+    const triggerScrape = async () => {
+        setScraperLoading(true);
+        setScraperMessage('');
+
+        try {
+            if (!DREAMHOST_WORKER_URL) {
+                setScraperMessage('❌ DreamHost worker URL not configured');
+                return;
+            }
+
+            // Step 1: Get signed payload from PythonAnywhere
+            const payloadRes = await fetch(`${API_URL}/api/admin/trigger-scrape-payload`, {
+                credentials: 'include',
+            });
+
+            if (!payloadRes.ok) {
+                const data = await payloadRes.json();
+                setScraperMessage(`❌ ${data.error || 'Failed to get scrape payload'}`);
+                return;
+            }
+
+            const { payload, payload_json, signature } = await payloadRes.json();
+
+            // Step 2: Send to DreamHost worker
+            const dhRes = await fetch(`${DREAMHOST_WORKER_URL}/web_shim.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload, payload_json, signature }),
+            });
+
+            const dhData = await dhRes.json();
+            if (dhRes.ok) {
+                setScraperMessage(`✅ ${dhData.message}`);
+            } else {
+                setScraperMessage(`❌ ${dhData.error || 'DreamHost worker failed'}`);
+            }
+        } catch (err) {
+            setScraperMessage('❌ Failed to trigger scraper');
+        } finally {
+            setScraperLoading(false);
+        }
+    };
+
+    const triggerMailer = async () => {
+        setMailerLoading(true);
+        setMailerMessage('');
+
+        try {
+            if (!DREAMHOST_WORKER_URL) {
+                setMailerMessage('❌ DreamHost worker URL not configured');
+                return;
+            }
+
+            // Step 1: Get signed payload from PythonAnywhere
+            const payloadRes = await fetch(`${API_URL}/api/admin/trigger-mailer-payload`, {
+                credentials: 'include',
+            });
+
+            if (!payloadRes.ok) {
+                const data = await payloadRes.json();
+                setMailerMessage(`❌ ${data.error || 'Failed to get mailer payload'}`);
+                return;
+            }
+
+            const { payload, payload_json, signature } = await payloadRes.json();
+
+            // Step 2: Send to DreamHost worker
+            const dhRes = await fetch(`${DREAMHOST_WORKER_URL}/web_shim.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload, payload_json, signature }),
+            });
+
+            const dhData = await dhRes.json();
+            if (dhRes.ok) {
+                setMailerMessage(`✅ ${dhData.message}`);
+            } else {
+                setMailerMessage(`❌ ${dhData.error || 'DreamHost worker failed'}`);
+            }
+        } catch (err) {
+            setMailerMessage('❌ Failed to trigger mailer');
+        } finally {
+            setMailerLoading(false);
+        }
+    };
+
+    const fetchLogs = async (type: 'scraper' | 'mailer') => {
+        setLogLoading(true);
+        setLogType(type);
+        setLogContent('');
+        setLogInfo('');
+
+        try {
+            if (!DREAMHOST_WORKER_URL) {
+                setLogContent('DreamHost worker URL not configured');
+                return;
+            }
+
+            // Step 1: Get signed payload from PythonAnywhere
+            const payloadRes = await fetch(`${API_URL}/api/admin/get-logs-payload?log_type=${type}`, {
+                credentials: 'include',
+            });
+
+            if (!payloadRes.ok) {
+                const data = await payloadRes.json();
+                setLogContent(`Error: ${data.error || 'Failed to get logs payload'}`);
+                return;
+            }
+
+            const { payload, payload_json, signature } = await payloadRes.json();
+
+            // Step 2: Send to DreamHost worker
+            const dhRes = await fetch(`${DREAMHOST_WORKER_URL}/web_shim.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payload, payload_json, signature }),
+            });
+
+            const dhData = await dhRes.json();
+            if (dhRes.ok) {
+                setLogContent(dhData.content || '(Empty log)');
+                setLogInfo(`Showing ${dhData.lines} of ${dhData.total_lines || dhData.lines} lines`);
+            } else {
+                setLogContent(`Error: ${dhData.error || 'DreamHost worker failed'}`);
+            }
+        } catch (err) {
+            setLogContent('Failed to fetch logs');
+        } finally {
+            setLogLoading(false);
+        }
+    };
+
     const deleteUser = async (userId: number, email: string) => {
         if (!confirm(`Are you sure you want to delete user ${email}? This cannot be undone.`)) {
             return;
@@ -208,6 +347,12 @@ export default function AdminPage() {
                     >
                         Feedback ({stats?.feedback_pending || 0} pending)
                     </button>
+                    <button
+                        className={`${pageStyles.tab} ${activeTab === 'logs' ? pageStyles.active : ''}`}
+                        onClick={() => setActiveTab('logs')}
+                    >
+                        Logs
+                    </button>
                 </div>
 
                 {/* Overview Tab */}
@@ -259,6 +404,32 @@ export default function AdminPage() {
                                     {testEmailLoading ? 'Sending...' : 'Send Test Email'}
                                 </button>
                                 {testEmailMessage && <p className={pageStyles.testEmailMsg}>{testEmailMessage}</p>}
+                            </div>
+                        </div>
+                        <div className={pageStyles.statCard}>
+                            <span className={pageStyles.statIcon}>🔄</span>
+                            <div className={pageStyles.statInfo}>
+                                <button
+                                    onClick={triggerScrape}
+                                    disabled={scraperLoading}
+                                    className={pageStyles.testEmailBtn}
+                                >
+                                    {scraperLoading ? 'Running...' : 'Run Scrapers'}
+                                </button>
+                                {scraperMessage && <p className={pageStyles.testEmailMsg}>{scraperMessage}</p>}
+                            </div>
+                        </div>
+                        <div className={pageStyles.statCard}>
+                            <span className={pageStyles.statIcon}>📨</span>
+                            <div className={pageStyles.statInfo}>
+                                <button
+                                    onClick={triggerMailer}
+                                    disabled={mailerLoading}
+                                    className={pageStyles.testEmailBtn}
+                                >
+                                    {mailerLoading ? 'Sending...' : 'Send Digests'}
+                                </button>
+                                {mailerMessage && <p className={pageStyles.testEmailMsg}>{mailerMessage}</p>}
                             </div>
                         </div>
                     </div>
@@ -339,6 +510,32 @@ export default function AdminPage() {
                                 </div>
                             ))
                         )}
+                    </div>
+                )}
+
+                {/* Logs Tab */}
+                {activeTab === 'logs' && (
+                    <div className={pageStyles.logsContainer}>
+                        <div className={pageStyles.logsButtons}>
+                            <button
+                                onClick={() => fetchLogs('scraper')}
+                                disabled={logLoading}
+                                className={`${pageStyles.logBtn} ${logType === 'scraper' ? pageStyles.active : ''}`}
+                            >
+                                {logLoading && logType === 'scraper' ? 'Loading...' : '🔄 Scraper Log'}
+                            </button>
+                            <button
+                                onClick={() => fetchLogs('mailer')}
+                                disabled={logLoading}
+                                className={`${pageStyles.logBtn} ${logType === 'mailer' ? pageStyles.active : ''}`}
+                            >
+                                {logLoading && logType === 'mailer' ? 'Loading...' : '📨 Mailer Log'}
+                            </button>
+                        </div>
+                        {logInfo && <p className={pageStyles.logInfo}>{logInfo}</p>}
+                        <pre className={pageStyles.logContent}>
+                            {logContent || 'Click a button above to load logs'}
+                        </pre>
                     </div>
                 )}
             </main>
