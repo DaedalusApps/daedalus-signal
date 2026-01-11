@@ -1,0 +1,40 @@
+# DaedalusSignal API .htaccess
+# Routes all API requests through api.php
+
+RewriteEngine On
+
+# Force HTTPS
+# RewriteCond %{HTTPS} off
+# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Pass Authorization header (Apache workaround)
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Route all requests to api.php (unless file exists)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ api.php [QSA,L]
+
+# Deny direct access to lib and routes directories
+<FilesMatch "\.(php)$">
+    <If "%{REQUEST_URI} =~ m#/(lib|routes)/#">
+        Require all denied
+    </If>
+</FilesMatch>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Environment variables (copy and customize on DreamHost)
+# SetEnv DB_HOST mysql.signal.daedalusapps.com
+# SetEnv DB_NAME daedalussignal
+# SetEnv DB_USER signal_db
+# SetEnv DB_PASSWORD your_db_password
+# SetEnv JWT_SECRET your_256_bit_random_secret
+# SetEnv TURNSTILE_SECRET_KEY your_turnstile_secret
+# SetEnv SECRET_KEY your_hmac_secret
