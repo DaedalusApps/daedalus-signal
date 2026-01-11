@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 DreamHost Scraper Worker
-Runs scrapers independently and POSTs results to PythonAnywhere
+Runs scrapers independently and POSTs results to API
 """
 import sys
 import re
@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
 from config import SCRAPE_DELAY_MIN, SCRAPE_DELAY_MAX, USER_AGENT_ROTATE
-from api_client import PAClient
+from api_client import APIClient
 
 
 class BaseScraper:
@@ -416,12 +416,12 @@ SCRAPERS = {
 
 
 def run_all_scrapers():
-    """Main entry point - fetch sources, scrape, submit to PA."""
+    """Main entry point - fetch sources, scrape, submit to API."""
     print(f"\n[{datetime.now()}] Starting DreamHost scraper worker...")
 
-    client = PAClient()
+    client = APIClient()
 
-    # PythonAnywhere free tier apps sleep - first request wakes them up, retry once
+    # Retry once on initial failure (cold start)
     try:
         sources = client.get_sources()
     except Exception as e:
@@ -433,7 +433,7 @@ def run_all_scrapers():
             print(f"  ERROR fetching sources: {e}")
             sys.exit(1)
 
-    print(f"  Fetched {len(sources)} sources from PythonAnywhere")
+    print(f"  Fetched {len(sources)} sources from API")
 
     for source in sources:
         source_type = source['source_type']

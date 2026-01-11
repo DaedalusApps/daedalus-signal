@@ -30,6 +30,11 @@ RewriteRule ^(.*)$ api.php [QSA,L]
     Header set X-XSS-Protection "1; mode=block"
 </IfModule>
 
+# Block access to sensitive files
+<FilesMatch "\.(env|log)$">
+    Require all denied
+</FilesMatch>
+
 # Environment variables (copy and customize on DreamHost)
 # SetEnv DB_HOST mysql.signal.daedalusapps.com
 # SetEnv DB_NAME daedalussignal
