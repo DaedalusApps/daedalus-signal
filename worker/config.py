@@ -8,16 +8,16 @@ from dotenv import load_dotenv
 # Load .env file from the same directory as this config
 load_dotenv(Path(__file__).parent / '.env')
 
-# PythonAnywhere API configuration
-PA_API_URL = os.getenv("PA_API_URL", "https://your-username.pythonanywhere.com")
-WORKER_SECRET = os.getenv("WORKER_SECRET", "")
+# API configuration (DreamHost PHP API)
+API_URL = os.getenv("API_URL", "https://api.signal.daedalusapps.com")
+SECRET_KEY = os.getenv("SECRET_KEY", "")
 
 # Local SMTP configuration (DreamHost's mail server)
-SMTP_HOST = os.getenv("SMTP_HOST", "mail.yourdomain.com")
+SMTP_HOST = os.getenv("SMTP_HOST", "mail.signal.daedalusapps.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM = os.getenv("SMTP_FROM", "noreply@yourdomain.com")
+SMTP_FROM = os.getenv("SMTP_FROM", "noreply@signal.daedalusapps.com")
 
 # Scraping configuration
 SCRAPE_DELAY_MIN = 2

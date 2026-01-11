@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 DreamHost Mailer Worker
-Fetches digest payloads from PythonAnywhere and sends via local SMTP
+Fetches digest payloads from API and sends via local SMTP
 """
 import sys
 import smtplib
@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
 from config import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM
-from api_client import PAClient
+from api_client import APIClient
 
 
 def send_email(to_email: str, html_content: str, subject: str = "DaedalusSignal Daily Digest") -> bool:
@@ -39,9 +39,9 @@ def run_mailer():
     """Main entry point - fetch digests and send emails."""
     print(f"\n[{datetime.now()}] Starting DreamHost mailer worker...")
 
-    client = PAClient()
+    client = APIClient()
 
-    # PythonAnywhere free tier apps sleep - first request wakes them up, retry once
+    # Retry once on initial failure (cold start)
     try:
         digests = client.get_digests()
     except Exception as e:
@@ -53,7 +53,7 @@ def run_mailer():
             print(f"  ERROR fetching digests: {e}")
             sys.exit(1)
 
-    print(f"  Fetched {len(digests)} digest payloads from PythonAnywhere")
+    print(f"  Fetched {len(digests)} digest payloads from API")
 
     sent = 0
     failed = 0
@@ -68,10 +68,10 @@ def run_mailer():
         if send_email(email, html):
             sent += 1
             try:
-                # Notify PA that email was sent
+                # Notify API that email was sent
                 client.mark_digest_sent(email, content_ids)
             except Exception as e:
-                print(f"    Warning: failed to notify PA: {e}")
+                print(f"    Warning: failed to notify API: {e}")
         else:
             failed += 1
 
