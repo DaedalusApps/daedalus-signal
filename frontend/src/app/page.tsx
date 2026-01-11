@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { setToken } from '@/lib/auth';
 import styles from './page.module.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -52,7 +53,7 @@ export default function Home() {
     useEffect(() => {
         if (showLogin) {
             // Fire-and-forget ping to wake up the backend
-            fetch(`${API_URL}/api/auth/me`, { credentials: 'include' }).catch(() => { });
+            fetch(`${API_URL}/api/health`).catch(() => { });
         }
     }, [showLogin]);
 
@@ -125,7 +126,6 @@ export default function Home() {
             const response = await fetch(`${API_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
                 body: JSON.stringify(body),
             });
 
@@ -140,6 +140,11 @@ export default function Home() {
                 }
                 setLoading(false);
                 return;
+            }
+
+            // Store JWT token
+            if (data.token) {
+                setToken(data.token);
             }
 
             // Redirect to dashboard on success

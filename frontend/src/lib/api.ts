@@ -1,3 +1,5 @@
+import { getAuthHeaders, setToken, clearToken } from './auth';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 interface ApiResponse<T> {
@@ -14,9 +16,9 @@ async function request<T>(
             ...options,
             headers: {
                 'Content-Type': 'application/json',
+                ...getAuthHeaders(),
                 ...options.headers,
             },
-            credentials: 'include',
         });
 
         const data = await response.json();
@@ -33,20 +35,32 @@ async function request<T>(
 
 // Auth
 export const auth = {
-    register: (email: string, password: string, turnstile_token?: string) =>
-        request('/api/auth/register', {
+    register: async (email: string, password: string, turnstile_token?: string) => {
+        const result = await request<{ token: string; user: unknown }>('/api/auth/register', {
             method: 'POST',
             body: JSON.stringify({ email, password, turnstile_token }),
-        }),
+        });
+        if (result.data?.token) {
+            setToken(result.data.token);
+        }
+        return result;
+    },
 
-    login: (email: string, password: string) =>
-        request('/api/auth/login', {
+    login: async (email: string, password: string) => {
+        const result = await request<{ token: string; user: unknown }>('/api/auth/login', {
             method: 'POST',
             body: JSON.stringify({ email, password }),
-        }),
+        });
+        if (result.data?.token) {
+            setToken(result.data.token);
+        }
+        return result;
+    },
 
-    logout: () =>
-        request('/api/auth/logout', { method: 'POST' }),
+    logout: () => {
+        clearToken();
+        return Promise.resolve({ data: { message: 'Logged out' } });
+    },
 
     me: () => request('/api/auth/me'),
 

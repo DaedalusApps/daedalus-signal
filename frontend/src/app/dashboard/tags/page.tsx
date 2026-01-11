@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
+import { getAuthHeaders } from '@/lib/auth';
 import styles from '../dashboard.module.css';
 import pageStyles from './tags.module.css';
 
@@ -29,9 +30,10 @@ export default function TagsPage() {
 
     const loadTags = async () => {
         try {
+            const headers = getAuthHeaders();
             const [userRes, defaultRes] = await Promise.all([
-                fetch(`${API_URL}/api/tags`, { credentials: 'include' }),
-                fetch(`${API_URL}/api/tags/defaults`, { credentials: 'include' }),
+                fetch(`${API_URL}/api/tags`, { headers }),
+                fetch(`${API_URL}/api/tags/defaults`, { headers }),
             ]);
 
             if (userRes.ok) {
@@ -58,8 +60,7 @@ export default function TagsPage() {
 
         const res = await fetch(`${API_URL}/api/tags`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ name: newTag }),
         });
 
@@ -77,7 +78,7 @@ export default function TagsPage() {
     const removeTag = async (id: number) => {
         const res = await fetch(`${API_URL}/api/tags/${id}`, {
             method: 'DELETE',
-            credentials: 'include',
+            headers: getAuthHeaders(),
         });
 
         if (res.ok) {
@@ -88,8 +89,7 @@ export default function TagsPage() {
     const addDefaultTag = async (tag: Tag) => {
         const res = await fetch(`${API_URL}/api/tags`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ name: tag.name, category: tag.category }),
         });
 

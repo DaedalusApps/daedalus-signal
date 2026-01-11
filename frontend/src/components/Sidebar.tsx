@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/hooks/useTheme';
+import { getAuthHeaders, clearToken } from '@/lib/auth';
 import styles from './Sidebar.module.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -25,7 +26,9 @@ export default function Sidebar({ activePage }: SidebarProps) {
 
     const loadUser = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+            const res = await fetch(`${API_URL}/api/auth/me`, {
+                headers: getAuthHeaders(),
+            });
             if (res.ok) {
                 const data = await res.json();
                 setUser(data.user);
@@ -35,11 +38,8 @@ export default function Sidebar({ activePage }: SidebarProps) {
         }
     };
 
-    const handleLogout = async () => {
-        await fetch(`${API_URL}/api/auth/logout`, {
-            method: 'POST',
-            credentials: 'include',
-        });
+    const handleLogout = () => {
+        clearToken();
         window.location.href = '/';
     };
 
@@ -52,7 +52,7 @@ export default function Sidebar({ activePage }: SidebarProps) {
         try {
             const res = await fetch(
                 `${API_URL}/api/content/new-count?since=${encodeURIComponent(lastChecked)}`,
-                { credentials: 'include' }
+                { headers: getAuthHeaders() }
             );
             if (res.ok) {
                 const data = await res.json();

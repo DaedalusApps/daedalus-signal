@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { User } from '@/types';
+import { getAuthHeaders } from '@/lib/auth';
 import styles from '../dashboard.module.css';
 import pageStyles from './admin.module.css';
 
@@ -52,10 +53,11 @@ export default function AdminPage() {
 
     const loadAdminData = async () => {
         try {
+            const headers = getAuthHeaders();
             const [statsRes, usersRes, feedbackRes] = await Promise.all([
-                fetch(`${API_URL}/api/admin/stats`, { credentials: 'include' }),
-                fetch(`${API_URL}/api/admin/users`, { credentials: 'include' }),
-                fetch(`${API_URL}/api/admin/feedback`, { credentials: 'include' }),
+                fetch(`${API_URL}/api/admin/stats`, { headers }),
+                fetch(`${API_URL}/api/admin/users`, { headers }),
+                fetch(`${API_URL}/api/admin/feedback`, { headers }),
             ]);
 
             if (!statsRes.ok) {
@@ -93,7 +95,7 @@ export default function AdminPage() {
             if (DREAMHOST_WORKER_URL) {
                 // Step 1: Get signed payload from PythonAnywhere
                 const payloadRes = await fetch(`${API_URL}/api/admin/test-email-payload`, {
-                    credentials: 'include',
+                    headers: getAuthHeaders(),
                 });
 
                 if (!payloadRes.ok) {
@@ -122,7 +124,7 @@ export default function AdminPage() {
                 // Fallback to direct PA send if DreamHost not configured
                 const res = await fetch(`${API_URL}/api/admin/test-email`, {
                     method: 'POST',
-                    credentials: 'include',
+                    headers: getAuthHeaders(),
                 });
                 const data = await res.json();
                 if (res.ok) {
@@ -150,7 +152,7 @@ export default function AdminPage() {
 
             // Step 1: Get signed payload from PythonAnywhere
             const payloadRes = await fetch(`${API_URL}/api/admin/trigger-scrape-payload`, {
-                credentials: 'include',
+                headers: getAuthHeaders(),
             });
 
             if (!payloadRes.ok) {
@@ -193,7 +195,7 @@ export default function AdminPage() {
 
             // Step 1: Get signed payload from PythonAnywhere
             const payloadRes = await fetch(`${API_URL}/api/admin/trigger-mailer-payload`, {
-                credentials: 'include',
+                headers: getAuthHeaders(),
             });
 
             if (!payloadRes.ok) {
@@ -238,7 +240,7 @@ export default function AdminPage() {
 
             // Step 1: Get signed payload from PythonAnywhere
             const payloadRes = await fetch(`${API_URL}/api/admin/get-logs-payload?log_type=${type}`, {
-                credentials: 'include',
+                headers: getAuthHeaders(),
             });
 
             if (!payloadRes.ok) {
@@ -277,7 +279,7 @@ export default function AdminPage() {
         try {
             const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
                 method: 'DELETE',
-                credentials: 'include',
+                headers: getAuthHeaders(),
             });
             if (res.ok) {
                 setUsers(users.filter(u => u.id !== userId));

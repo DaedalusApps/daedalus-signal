@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
+import { getAuthHeaders, isAuthenticated } from '@/lib/auth';
 import styles from './dashboard.module.css';
 import { Content } from '@/types';
 
@@ -15,12 +16,19 @@ export default function Dashboard() {
     const [filter, setFilter] = useState<string>('all');
 
     useEffect(() => {
+        // Redirect to login if not authenticated
+        if (!isAuthenticated()) {
+            window.location.href = '/';
+            return;
+        }
+
         const loadData = async () => {
             try {
+                const headers = getAuthHeaders();
                 // Fetch content feed and sources count in parallel
                 const [contentRes, sourcesRes] = await Promise.all([
-                    fetch(`${API_URL}/api/content/feed`, { credentials: 'include' }),
-                    fetch(`${API_URL}/api/sources`, { credentials: 'include' }),
+                    fetch(`${API_URL}/api/content/feed`, { headers }),
+                    fetch(`${API_URL}/api/sources`, { headers }),
                 ]);
 
                 if (contentRes.ok) {
