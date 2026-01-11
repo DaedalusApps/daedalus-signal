@@ -76,7 +76,7 @@ switch (true) {
         handle_trigger_mailer_payload();
         break;
 
-    case $uri === '/admin/logs-payload' && $method === 'GET':
+    case $uri === '/admin/get-logs-payload' && $method === 'GET':
         handle_logs_payload();
         break;
 
@@ -297,15 +297,31 @@ function generate_hmac(string $data): string
  */
 function handle_test_email_payload(): void
 {
-    require_admin();
+    $user_id = require_admin();
+
+    // Get admin email from database
+    $db = Database::getConnection();
+    $stmt = $db->prepare("SELECT email FROM users WHERE id = ?");
+    $stmt->execute([$user_id]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        error_response('Admin user not found', 404);
+    }
 
     $timestamp = time();
-    $action = 'test_email';
-    $signature = generate_hmac("$action:$timestamp");
+    $payload = [
+        'action' => 'test_email',
+        'email' => $user['email'],
+        'timestamp' => $timestamp
+    ];
+    $payload_json = json_encode($payload);
+    // Worker verifies: hash_hmac('sha256', "$timestamp:$payload_json", $secret)
+    $signature = generate_hmac($timestamp . ':' . $payload_json);
 
     json_response([
-        'action' => $action,
-        'timestamp' => $timestamp,
+        'payload' => $payload,
+        'payload_json' => $payload_json,
         'signature' => $signature
     ]);
 }
@@ -318,12 +334,16 @@ function handle_trigger_scrape_payload(): void
     require_admin();
 
     $timestamp = time();
-    $action = 'run_scrapers';
-    $signature = generate_hmac("$action:$timestamp");
+    $payload = [
+        'action' => 'run_scrapers',
+        'timestamp' => $timestamp
+    ];
+    $payload_json = json_encode($payload);
+    $signature = generate_hmac($timestamp . ':' . $payload_json);
 
     json_response([
-        'action' => $action,
-        'timestamp' => $timestamp,
+        'payload' => $payload,
+        'payload_json' => $payload_json,
         'signature' => $signature
     ]);
 }
@@ -336,18 +356,22 @@ function handle_trigger_mailer_payload(): void
     require_admin();
 
     $timestamp = time();
-    $action = 'run_mailer';
-    $signature = generate_hmac("$action:$timestamp");
+    $payload = [
+        'action' => 'run_mailer',
+        'timestamp' => $timestamp
+    ];
+    $payload_json = json_encode($payload);
+    $signature = generate_hmac($timestamp . ':' . $payload_json);
 
     json_response([
-        'action' => $action,
-        'timestamp' => $timestamp,
+        'payload' => $payload,
+        'payload_json' => $payload_json,
         'signature' => $signature
     ]);
 }
 
 /**
- * GET /api/admin/logs-payload
+ * GET /api/admin/get-logs-payload
  */
 function handle_logs_payload(): void
 {
@@ -359,13 +383,17 @@ function handle_logs_payload(): void
     }
 
     $timestamp = time();
-    $action = "get_logs_$log_type";
-    $signature = generate_hmac("$action:$timestamp");
+    $payload = [
+        'action' => 'get_logs',
+        'log_type' => $log_type,
+        'timestamp' => $timestamp
+    ];
+    $payload_json = json_encode($payload);
+    $signature = generate_hmac($timestamp . ':' . $payload_json);
 
     json_response([
-        'action' => $action,
-        'log_type' => $log_type,
-        'timestamp' => $timestamp,
+        'payload' => $payload,
+        'payload_json' => $payload_json,
         'signature' => $signature
     ]);
 }

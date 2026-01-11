@@ -109,6 +109,57 @@ if (!hash_equals($expected_signature, $signature)) {
 $action = $payload['action'] ?? 'send_email';
 
 // =========================================
+// ACTION: Test Email (simple test with hardcoded content)
+// =========================================
+if ($action === 'test_email') {
+    $admin_email = $payload['email'] ?? '';
+
+    if (!$admin_email || !filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid email address']);
+        exit;
+    }
+
+    // Simple test email HTML
+    $test_html = '
+    <html>
+    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #8b5cf6;">DaedalusSignal Test Email</h1>
+        <p>This is a test email from DaedalusSignal.</p>
+        <p>If you received this, the email system is working correctly!</p>
+        <p style="color: #666; font-size: 12px;">Sent at: ' . date('Y-m-d H:i:s T') . '</p>
+    </body>
+    </html>';
+
+    // Get SMTP settings from environment
+    $smtp_host = getenv('SMTP_HOST') ?: 'mail.signal.daedalusapps.com';
+    $smtp_port = getenv('SMTP_PORT') ?: 587;
+    $smtp_user = getenv('SMTP_USER') ?: '';
+    $smtp_pass = getenv('SMTP_PASSWORD') ?: '';
+    $smtp_from = getenv('SMTP_FROM') ?: 'noreply@signal.daedalusapps.com';
+
+    if ($smtp_user && $smtp_pass) {
+        $result = send_smtp_email($admin_email, 'Test Email - DaedalusSignal', $test_html, $smtp_from, $smtp_host, $smtp_port, $smtp_user, $smtp_pass);
+        if ($result['success']) {
+            echo json_encode(['message' => "Test email sent to $admin_email"]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'SMTP error: ' . $result['error']]);
+        }
+    } else {
+        // Fallback to mail()
+        $headers = "MIME-Version: 1.0\r\nContent-type: text/html; charset=utf-8\r\nFrom: DaedalusSignal <$smtp_from>";
+        if (mail($admin_email, 'Test Email - DaedalusSignal', $test_html, $headers)) {
+            echo json_encode(['message' => "Test email sent to $admin_email"]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to send test email']);
+        }
+    }
+    exit;
+}
+
+// =========================================
 // ACTION: Get Logs
 // =========================================
 if ($action === 'get_logs') {
