@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / '.env')
 
 # API configuration (DreamHost PHP API)
-API_URL = os.getenv("API_URL", "https://signal.daedalusapps.com/api")
+API_URL = os.getenv("API_URL", "https://api.signal.daedalusapps.com")
 SECRET_KEY = os.getenv("SECRET_KEY", "")
 
 # Local SMTP configuration (DreamHost's mail server)
