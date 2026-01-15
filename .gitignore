@@ -19,6 +19,10 @@ data/*.db
 # IDE
 .vscode/
 .idea/
+.claude/
+
+# Internal notes
+thoughts/
 
 # OS
 .DS_Store

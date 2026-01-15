@@ -32,6 +32,7 @@ try {
         case preg_match('#^/auth/login$#', $uri) && $method === 'POST':
         case preg_match('#^/auth/logout$#', $uri) && $method === 'POST':
         case preg_match('#^/auth/forgot-password$#', $uri) && $method === 'POST':
+        case preg_match('#^/auth/reset-password(/[a-f0-9]+)?$#', $uri):
         case preg_match('#^/auth/me$#', $uri):
             require __DIR__ . '/routes/auth.php';
             break;

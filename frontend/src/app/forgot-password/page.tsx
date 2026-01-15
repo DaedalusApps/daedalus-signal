@@ -8,7 +8,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
-    const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
@@ -24,7 +23,7 @@ export default function ForgotPasswordPage() {
             const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, message }),
+                body: JSON.stringify({ email }),
             });
 
             const data = await response.json();
@@ -47,18 +46,13 @@ export default function ForgotPasswordPage() {
         <main className={styles.main}>
             <div className={styles.card}>
                 <div className={styles.icon}>🔑</div>
-                <h1>Password Reset Request</h1>
+                <h1>Reset Password</h1>
 
                 {!submitted ? (
                     <>
                         <p className={styles.description}>
-                            Submit a request to reset your password. An administrator will review your request and assist you.
+                            Enter your email address and we&apos;ll send you a link to reset your password.
                         </p>
-
-                        <div className={styles.notice}>
-                            <strong>Note:</strong> Automated password reset via email is planned for a future update.
-                            For now, requests are handled manually by our team.
-                        </div>
 
                         {error && <div className={styles.error}>{error}</div>}
 
@@ -71,20 +65,12 @@ export default function ForgotPasswordPage() {
                                 required
                                 disabled={loading}
                             />
-                            <textarea
-                                placeholder="Additional information (optional) - e.g., when you created the account, any details that might help verify your identity"
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                rows={3}
-                                disabled={loading}
-                                className={styles.textarea}
-                            />
                             <button
                                 type="submit"
                                 className="btn btn-primary"
                                 disabled={loading || !email}
                             >
-                                {loading ? 'Submitting...' : 'Submit Request'}
+                                {loading ? 'Sending...' : 'Send Reset Link'}
                             </button>
                         </form>
                     </>
@@ -93,7 +79,7 @@ export default function ForgotPasswordPage() {
                         <div className={styles.successBox}>
                             <p>{success}</p>
                             <p className={styles.successNote}>
-                                We typically respond within 24-48 hours. Please check your email for further instructions.
+                                Check your email for a link to reset your password. The link expires in 15 minutes.
                             </p>
                         </div>
                     </>

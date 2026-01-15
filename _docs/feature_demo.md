@@ -9,6 +9,49 @@ This guide explains how to test and demo the features.
 
 ---
 
+## Feature 1: Password Reset (Magic Link)
+
+**Location:** Login page → "Forgot Password" link
+
+**Steps:**
+1. Go to `/forgot-password`
+2. Enter your email address
+3. Click "Send Reset Link"
+4. Check inbox for reset email
+5. Click the magic link in the email
+6. Enter new password and confirm
+7. Click "Reset Password"
+
+**Expected Result:**
+- Email arrives within a few seconds with reset link
+- Link expires in 15 minutes
+- After reset, redirects to login page
+- Can log in with new password
+
+**API Endpoints:**
+```bash
+# Request reset link
+curl -X POST https://signal.daedalusapps.com/api/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com"}'
+
+# Validate token
+curl https://signal.daedalusapps.com/api/auth/reset-password/{token}
+
+# Reset password
+curl -X POST https://signal.daedalusapps.com/api/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{"token": "...", "password": "newpassword123"}'
+```
+
+**Database Migration:**
+Run the migration to create the `password_reset_tokens` table:
+```bash
+mysql -u user -p database < api/migrations/001_password_reset_tokens.sql
+```
+
+---
+
 ## Feature 0: Test Email Button
 
 **Location:** Admin Dashboard → Overview tab

@@ -1,15 +1,19 @@
 <?php
 /**
  * Authentication Routes
- * 
+ *
  * POST /api/auth/register - Register new user
  * POST /api/auth/login - Login user
  * POST /api/auth/logout - Logout user (client-side)
- * POST /api/auth/forgot-password - Submit password reset request
+ * POST /api/auth/forgot-password - Request password reset (sends magic link)
+ * GET  /api/auth/reset-password/:token - Validate reset token
+ * POST /api/auth/reset-password - Reset password with token
  * GET  /api/auth/me - Get current user
  * PATCH /api/auth/me - Update current user settings
  * DELETE /api/auth/me - Delete account
  */
+
+require_once __DIR__ . '/../lib/email.php';
 
 $uri = preg_replace('#^/api#', '', parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 $method = $_SERVER['REQUEST_METHOD'];
@@ -30,6 +34,14 @@ switch (true) {
 
     case $uri === '/auth/forgot-password' && $method === 'POST':
         handle_forgot_password();
+        break;
+
+    case preg_match('#^/auth/reset-password/([a-f0-9]+)$#', $uri, $matches) && $method === 'GET':
+        handle_validate_reset_token($matches[1]);
+        break;
+
+    case $uri === '/auth/reset-password' && $method === 'POST':
+        handle_reset_password();
         break;
 
     case $uri === '/auth/me' && $method === 'GET':
@@ -156,6 +168,7 @@ function handle_logout(): void
 
 /**
  * POST /api/auth/forgot-password
+ * Request password reset - sends magic link via email
  */
 function handle_forgot_password(): void
 {
@@ -166,30 +179,147 @@ function handle_forgot_password(): void
     }
 
     $email = strtolower(trim($data['email']));
-    $message = trim($data['message'] ?? '');
 
     $db = Database::getConnection();
 
-    // Find user (optional - we still create feedback even if user doesn't exist)
-    $stmt = $db->prepare("SELECT id FROM users WHERE email = ?");
+    // Lookup user by email
+    $stmt = $db->prepare("SELECT id, email FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
-    $user_id = $user ? (int) $user['id'] : null;
 
-    // Create feedback entry for admin to review
+    // Always return success for security (don't reveal if email exists)
+    if (!$user) {
+        json_response([
+            'message' => 'If an account exists with this email, a reset link has been sent'
+        ]);
+        return;
+    }
+
+    // Delete any existing tokens for this user
+    $stmt = $db->prepare("DELETE FROM password_reset_tokens WHERE user_id = ?");
+    $stmt->execute([$user['id']]);
+
+    // Generate token using selector+verifier pattern for efficient indexed lookup
+    // Selector: 16 hex chars (8 bytes) - stored plaintext for indexed lookup
+    // Verifier: 48 hex chars (24 bytes) - stored as hash for security
+    $selector = bin2hex(random_bytes(8));
+    $verifier = bin2hex(random_bytes(24));
+    $token = $selector . $verifier;
+    $verifier_hash = hash_password($verifier);
+    $expires_at = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+
+    // Store token in database
     $stmt = $db->prepare("
-        INSERT INTO feedback (user_id, email, message, feedback_type, status, created_at)
-        VALUES (?, ?, ?, 'password_reset', 'pending', NOW())
+        INSERT INTO password_reset_tokens (user_id, selector, verifier_hash, expires_at, created_at)
+        VALUES (?, ?, ?, ?, NOW())
     ");
-    $stmt->execute([
-        $user_id,
-        $email,
-        $message ?: 'Password reset requested'
-    ]);
+    $stmt->execute([$user['id'], $selector, $verifier_hash, $expires_at]);
+
+    // Build reset link
+    $frontend_url = getenv('FRONTEND_URL') ?: 'https://signal.daedalusapps.com';
+    $reset_link = "{$frontend_url}/reset-password?token={$token}";
+
+    // Send email (use email prefix as name)
+    $name = explode('@', $user['email'])[0];
+    $email_sent = send_password_reset_email($user['email'], $name, $reset_link);
+
+    if (!$email_sent) {
+        error_log("Failed to send password reset email to: {$user['email']}");
+    }
 
     json_response([
-        'message' => 'Your password reset request has been submitted. An administrator will review it and contact you.'
+        'message' => 'If an account exists with this email, a reset link has been sent'
     ]);
+}
+
+/**
+ * GET /api/auth/reset-password/:token
+ * Validate if a password reset token is valid and not expired
+ */
+function handle_validate_reset_token(string $token): void
+{
+    // Token must be 64 hex chars (16 selector + 48 verifier)
+    if (strlen($token) !== 64) {
+        json_response(['valid' => false]);
+        return;
+    }
+
+    $selector = substr($token, 0, 16);
+    $verifier = substr($token, 16);
+
+    $db = Database::getConnection();
+
+    // Lookup by selector (indexed) - only fetch one row
+    $stmt = $db->prepare("
+        SELECT * FROM password_reset_tokens
+        WHERE selector = ? AND expires_at > NOW() AND used_at IS NULL
+    ");
+    $stmt->execute([$selector]);
+    $reset_token = $stmt->fetch();
+
+    if (!$reset_token || !verify_password($verifier, $reset_token['verifier_hash'])) {
+        json_response(['valid' => false]);
+        return;
+    }
+
+    json_response(['valid' => true]);
+}
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password using valid token
+ */
+function handle_reset_password(): void
+{
+    $data = get_json_body();
+
+    if (!$data || empty($data['token']) || empty($data['password'])) {
+        error_response('Token and password are required', 400);
+    }
+
+    $token = $data['token'];
+    $password = $data['password'];
+
+    // Token must be 64 hex chars (16 selector + 48 verifier)
+    if (strlen($token) !== 64) {
+        error_response('Invalid or expired reset token', 400);
+    }
+
+    // Validate password strength
+    if (strlen($password) < 8) {
+        error_response('Password must be at least 8 characters', 400);
+    }
+
+    $selector = substr($token, 0, 16);
+    $verifier = substr($token, 16);
+
+    $db = Database::getConnection();
+
+    // Lookup by selector (indexed) - only fetch one row
+    $stmt = $db->prepare("
+        SELECT * FROM password_reset_tokens
+        WHERE selector = ? AND expires_at > NOW() AND used_at IS NULL
+    ");
+    $stmt->execute([$selector]);
+    $matched_token = $stmt->fetch();
+
+    if (!$matched_token || !verify_password($verifier, $matched_token['verifier_hash'])) {
+        error_response('Invalid or expired reset token', 400);
+    }
+
+    // Update user's password (CASCADE ensures token's user_id is valid)
+    $stmt = $db->prepare("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?");
+    $stmt->execute([hash_password($password), $matched_token['user_id']]);
+
+    // Mark token as used
+    $stmt = $db->prepare("UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ?");
+    $stmt->execute([$matched_token['id']]);
+
+    // Delete all other tokens for this user
+    $stmt = $db->prepare("DELETE FROM password_reset_tokens WHERE user_id = ? AND id != ?");
+    $stmt->execute([$matched_token['user_id'], $matched_token['id']]);
+
+    json_response(['message' => 'Password reset successful']);
 }
 
 /**
@@ -293,6 +423,7 @@ function handle_delete_account(): void
     $db->prepare("DELETE FROM digests WHERE user_id = ?")->execute([$user_id]);
     $db->prepare("DELETE FROM feedback WHERE user_id = ?")->execute([$user_id]);
     $db->prepare("DELETE FROM verification_codes WHERE user_id = ?")->execute([$user_id]);
+    $db->prepare("DELETE FROM password_reset_tokens WHERE user_id = ?")->execute([$user_id]);
 
     // Delete user
     $db->prepare("DELETE FROM users WHERE id = ?")->execute([$user_id]);
