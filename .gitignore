@@ -1,10 +1,7 @@
-# Backend
-backend/venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/*.pyc
+# Python
 *.pyc
 __pycache__/
+worker/venv/
 
 # Frontend
 frontend/node_modules/
@@ -29,4 +26,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Production env (contains secrets)
 frontend/.env.production

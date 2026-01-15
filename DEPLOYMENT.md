@@ -1,140 +1,91 @@
 # Deploying Daedalus Signal
 
-This guide covers deploying the Flask backend to **PythonAnywhere** and the Next.js frontend to **DreamHost**.
+This guide covers deploying to **DreamHost** (all components).
 
 ## Architecture
 
 | Component | Host | URL |
 |-----------|------|-----|
 | Frontend (Static) | DreamHost | `signal.daedalusapps.com` |
-| Backend API | PythonAnywhere | `<username>.pythonanywhere.com` |
-| Database | PythonAnywhere | MySQL (included) |
+| Backend API | DreamHost | `signal.daedalusapps.com/api` |
+| Workers | DreamHost | Cron jobs |
+| Database | DreamHost | MySQL |
 
 ---
 
-## Part 1: Backend on PythonAnywhere
+## Part 1: PHP API
 
-### 1. Create a Web App
-1. Log in to [PythonAnywhere](https://www.pythonanywhere.com)
-2. Go to **Web** tab → **Add a new web app**
-3. Choose **Flask** and select **Python 3.10** (or latest)
-4. Note the default path: `/home/<username>/mysite/`
+### 1. Upload API Files
 
-### 2. Upload Code
-**Option A: Git Clone (Recommended)**
+Upload the `api/` folder to your DreamHost domain directory:
+
 ```bash
-# In PythonAnywhere Bash console
-cd ~
-git clone https://github.com/DaedalusApps/daedalus-signal.git
+scp -r api/* user@server.dreamhost.com:~/signal.daedalusapps.com/api/
 ```
 
-**Option B: Upload ZIP**
-- Use the **Files** tab to upload and extract
+### 2. Install Dependencies
 
-### 3. Set Up Virtual Environment
+SSH to DreamHost and install Composer dependencies:
+
 ```bash
-cd ~/daedalus-signal/backend
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-pip install mysqlclient
+cd ~/signal.daedalusapps.com/api
+composer install
 ```
 
-### 4. Configure WSGI
-1. Go to **Web** tab → click on your **WSGI configuration file** link
-2. Replace contents with:
+### 3. Configure Environment
 
-```python
-import sys
-import os
+Edit `api/.htaccess` and set the environment variables:
 
-# Add your project to the path
-project_home = '/home/<username>/daedalus-signal/backend'
-if project_home not in sys.path:
-    sys.path.insert(0, project_home)
-
-# Load environment variables
-from dotenv import load_dotenv
-load_dotenv(os.path.join(project_home, '.env'))
-
-# Import Flask app
-from app import create_app
-application = create_app()
+```apache
+SetEnv DB_HOST mysql.signal.daedalusapps.com
+SetEnv DB_NAME your_database_name
+SetEnv DB_USER your_database_user
+SetEnv DB_PASSWORD your_database_password
+SetEnv JWT_SECRET your_256_bit_random_secret
+SetEnv SECRET_KEY your_hmac_secret_for_workers
+SetEnv TURNSTILE_SECRET_KEY your_cloudflare_turnstile_key
+SetEnv ADMIN_EMAIL admin@daedalusapps.com
+SetEnv ADMIN_PASSWORD your_admin_password
 ```
 
-3. Update `<username>` with your PythonAnywhere username
+### 4. Create MySQL Database
 
-### 5. Set Virtual Environment Path
-In **Web** tab → **Virtualenv** section:
-```
-/home/<username>/daedalus-signal/backend/venv
-```
+1. Log in to DreamHost panel
+2. Go to **MySQL Databases**
+3. Create a new database and user
+4. Note the hostname (e.g., `mysql.signal.daedalusapps.com`)
 
-### 6. Create MySQL Database
-1. Go to **Databases** tab
-2. Create a MySQL database (e.g., `<username>$daedalus`)
-3. Note the hostname: `<username>.mysql.pythonanywhere-services.com`
+### 5. Seed Database
 
-### 7. Configure Environment
-Create `/home/<username>/daedalus-signal/backend/.env`:
+Run the seeder to create default sources, tags, and admin user:
 
-```ini
-SECRET_KEY=your-secure-random-key
-DATABASE_URL=mysql://<username>:<db_password>@<username>.mysql.pythonanywhere-services.com/<username>$daedalus
-
-# Email (optional)
-EMAIL_MODE=console
-# EMAIL_MODE=smtp
-# SMTP_HOST=smtp.example.com
-# SMTP_PORT=587
-# SMTP_USER=user@example.com
-# SMTP_PASSWORD=password
-
-# Admin credentials
-ADMIN_EMAIL=admin@daedalusapps.com
-ADMIN_PASSWORD=secure_password
-
-# CORS
-CORS_ORIGIN_1=https://signal.daedalusapps.com
-```
-
-### 8. Initialize Database
 ```bash
-cd ~/daedalus-signal/backend
-source venv/bin/activate
-python seed.py
+php ~/signal.daedalusapps.com/api/seed.php
 ```
 
-### 9. Reload Web App
-Click **Reload** button in the **Web** tab.
+Or via web (if SEED_KEY is set):
+```
+https://signal.daedalusapps.com/api/seed.php?key=YOUR_SEED_KEY
+```
 
-### 10. Set Up Scheduled Task
-Go to **Tasks** tab and add:
+### 6. Verify API
 
-**For Free Tier (1 task only):**
-| Time | Command |
-|------|---------|
-| Daily at 08:00 | `/home/<username>/daedalus-signal/backend/venv/bin/python /home/<username>/daedalus-signal/backend/run_tasks.py` |
-
-This combined script runs both content ingestion AND the daily digest check.
-
-**For Paid Tier (multiple tasks):**
-| Time | Command |
-|------|---------|
-| Every 6 hours | `.../venv/bin/python .../run_scheduler.py` |
-| Daily at 08:00 | `.../venv/bin/python .../run_digest.py` |
+```bash
+curl https://signal.daedalusapps.com/api/health
+# Should return: {"status":"ok","timestamp":"..."}
+```
 
 ---
 
-## Part 2: Frontend on DreamHost
+## Part 2: Frontend
 
 ### 1. Build for Production
+
 On your local machine:
 
 1. Create `frontend/.env.production`:
 ```ini
-NEXT_PUBLIC_API_URL=https://<username>.pythonanywhere.com
+NEXT_PUBLIC_API_URL=https://signal.daedalusapps.com
 ```
 
 2. Build:
@@ -146,12 +97,18 @@ npm run build
 This creates an `out/` folder with static files.
 
 ### 2. Upload to DreamHost
-1. Create/configure `signal.daedalusapps.com` in DreamHost panel
-2. Upload contents of `out/` folder to the domain directory via FTP or SFTP
-3. Ensure `index.html` is in the root
 
-### 3. Add .htaccess (Optional)
-For clean URLs without 404 errors on refresh:
+Upload contents of `out/` folder to the domain root:
+
+```bash
+scp -r frontend/out/* user@server.dreamhost.com:~/signal.daedalusapps.com/
+```
+
+Ensure `index.html` is in the root (not inside an `out/` subfolder).
+
+### 3. Verify .htaccess
+
+The `frontend/out/.htaccess` should be uploaded for SPA routing:
 
 ```apache
 <IfModule mod_rewrite.c>
@@ -167,27 +124,117 @@ For clean URLs without 404 errors on refresh:
 
 ---
 
-## Part 3: Verify
+## Part 3: Workers (Cron Jobs)
 
-1. **API Health**: `https://<username>.pythonanywhere.com/api/health`
-   - Should return: `{"status": "healthy"}`
+### 1. Upload Worker Files
+
+```bash
+ssh user@server.dreamhost.com
+mkdir -p ~/worker
+```
+
+```bash
+scp -r worker/* user@server.dreamhost.com:~/worker/
+```
+
+### 2. Set Up Python Environment
+
+```bash
+cd ~/worker
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 3. Configure Worker Environment
+
+Create `~/worker/.env`:
+
+```bash
+API_URL=https://signal.daedalusapps.com/api
+SECRET_KEY=same_as_api_secret_key
+
+SMTP_HOST=mail.signal.daedalusapps.com
+SMTP_PORT=587
+SMTP_USER=noreply@signal.daedalusapps.com
+SMTP_PASSWORD=your_smtp_password
+SMTP_FROM=noreply@signal.daedalusapps.com
+```
+
+### 4. Create Wrapper Script
+
+Create `~/worker/run.sh`:
+
+```bash
+#!/bin/bash
+cd ~/worker
+source venv/bin/activate
+source .env
+export API_URL SECRET_KEY SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASSWORD SMTP_FROM
+python "$@"
+```
+
+```bash
+chmod +x ~/worker/run.sh
+```
+
+### 5. Set Up Cron Jobs
+
+```bash
+mkdir -p ~/logs
+crontab -e
+```
+
+Add:
+
+```cron
+# Scrape content every 6 hours
+0 */6 * * * cd ~/worker && ./run.sh run_scrapers.py >> ~/logs/scraper.log 2>&1
+
+# Send daily digests at 8 AM
+0 8 * * * cd ~/worker && ./run.sh run_mailer.py >> ~/logs/mailer.log 2>&1
+```
+
+### 6. Test Workers Manually
+
+```bash
+cd ~/worker
+./run.sh run_scrapers.py
+./run.sh run_mailer.py
+```
+
+---
+
+## Part 4: Verify Deployment
+
+1. **API Health**: `https://signal.daedalusapps.com/api/health`
+   - Should return: `{"status":"ok","timestamp":"..."}`
 
 2. **Frontend**: `https://signal.daedalusapps.com`
    - Should load the app
 
-3. **Login**: Test authentication flow
+3. **Login**: Test with admin credentials
+
+4. **Cron Jobs**: Check logs after scheduled times
+   - `tail -f ~/logs/scraper.log`
+   - `tail -f ~/logs/mailer.log`
 
 ---
 
 ## Troubleshooting
 
 ### CORS Errors
-- Ensure `CORS_ORIGIN_1` in `.env` matches your frontend URL exactly
-- Reload the web app after changes
+- Check `api/lib/cors.php` has correct allowed origins
+- Verify `.htaccess` is being processed
 
 ### Database Connection Errors
-- Check `DATABASE_URL` format
-- Ensure MySQL database exists in PythonAnywhere
+- Verify DB credentials in `.htaccess`
+- Check MySQL hostname format
+
+### Worker Authentication Errors
+- Ensure `SECRET_KEY` matches between API and workers
+- Check server time sync (signatures have 5-minute window)
 
 ### Static Files Not Loading
-- Check that `out/` folder contents (not the folder itself) are in the domain root
+- Ensure `out/` folder contents (not the folder itself) are in the domain root
+- Verify `.htaccess` is present and correct

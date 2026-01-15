@@ -1,10 +1,10 @@
 # Feature Demo Guide
 
-This guide explains how to test and demo the 4 new features.
+This guide explains how to test and demo the features.
 
 ## Prerequisites
-- Backend running on localhost:5000 (or PythonAnywhere)
 - Frontend running on localhost:3000 (or DreamHost)
+- API running at https://signal.daedalusapps.com/api (or local PHP)
 - Admin account logged in
 
 ---
@@ -17,11 +17,11 @@ This guide explains how to test and demo the 4 new features.
 1. Log in as admin
 2. Navigate to `/dashboard/admin`
 3. Click "Send Test Email" button
-4. Check console output (if `EMAIL_MODE=console`) or inbox (if `EMAIL_MODE=smtp`)
+4. Check inbox for test email
 
 **Expected Result:**
 - Success message: "Test email sent to admin@example.com"
-- If SMTP configured: Email arrives in admin inbox
+- Email arrives in admin inbox
 
 ---
 
@@ -32,7 +32,7 @@ This guide explains how to test and demo the 4 new features.
 **Steps:**
 1. Log in to dashboard
 2. Note: First visit sets baseline (no badge)
-3. Run content ingestion: `python run_scheduler.py`
+3. Wait for scraper cron job to run (or trigger manually)
 4. Refresh page (don't go to Feed yet)
 5. See notification badge on "Feed" link showing count
 
@@ -68,8 +68,8 @@ location.reload();
 Currently only accessible via API:
 
 ```bash
-curl -X DELETE https://your-backend/api/auth/me \
-  -H "Cookie: session=your-session-cookie"
+curl -X DELETE https://signal.daedalusapps.com/api/auth/me \
+  -H "Authorization: Bearer your-jwt-token"
 ```
 
 ---
@@ -77,16 +77,10 @@ curl -X DELETE https://your-backend/api/auth/me \
 ## Feature 4: Unsubscribe Block List
 
 ### Testing Unsubscribe Link
-**Steps:**
-1. Generate a test unsubscribe URL:
-   ```python
-   from app.api.unsubscribe import generate_unsubscribe_token
-   email = "test@example.com"
-   token = generate_unsubscribe_token(email)
-   print(f"/api/unsubscribe/{token}?email={email}")
-   ```
-2. Visit the URL in browser
-3. See success message
+Unsubscribe links are included in digest emails. The URL format is:
+```
+/api/unsubscribe/{token}?email={email}
+```
 
 **Expected Result:**
 - Message: "test@example.com has been unsubscribed"
@@ -97,12 +91,12 @@ curl -X DELETE https://your-backend/api/auth/me \
 
 ```bash
 # Get blocklist
-curl https://your-backend/api/admin/blocklist \
-  -H "Cookie: session=admin-cookie"
+curl https://signal.daedalusapps.com/api/admin/blocklist \
+  -H "Authorization: Bearer admin-jwt-token"
 
 # Unblock an email
-curl -X DELETE https://your-backend/api/admin/blocklist/1 \
-  -H "Cookie: session=admin-cookie"
+curl -X DELETE https://signal.daedalusapps.com/api/admin/blocklist/1 \
+  -H "Authorization: Bearer admin-jwt-token"
 ```
 
 ---
@@ -111,20 +105,16 @@ curl -X DELETE https://your-backend/api/admin/blocklist/1 \
 
 ```bash
 # Health check
-curl https://your-backend/api/health
+curl https://signal.daedalusapps.com/api/health
 
 # Test new-count endpoint (logged in)
-curl "https://your-backend/api/content/new-count?since=2024-01-01T00:00:00Z" \
-  -H "Cookie: session=your-session"
-
-# Generate unsubscribe token (Python)
-python -c "from app.api.unsubscribe import generate_unsubscribe_token; print(generate_unsubscribe_token('test@example.com'))"
+curl "https://signal.daedalusapps.com/api/content/new-count?since=2024-01-01T00:00:00Z" \
+  -H "Authorization: Bearer your-jwt-token"
 ```
 
 ---
 
 ## Notes
 
-- **Email Mode:** Set `EMAIL_MODE=console` in `.env` to test without SMTP
-- **Database:** Run `python seed.py` to create test data
-- **Admin Account:** Uses `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `.env`
+- **Database Seeding:** Run `php api/seed.php` to create default data
+- **Admin Account:** Uses credentials set in API `.htaccess`
