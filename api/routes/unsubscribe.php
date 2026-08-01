@@ -64,7 +64,7 @@ function generate_unsubscribe_token(string $email): string
     $secret = getenv('SECRET_KEY');
     if (!$secret) {
         error_log('WARNING: SECRET_KEY not set for unsubscribe token generation');
-        $secret = '';
+        error_response('Server configuration error', 500);
     }
     return substr(hash_hmac('sha256', $email, $secret), 0, 32);
 }

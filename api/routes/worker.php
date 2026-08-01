@@ -308,7 +308,11 @@ function generate_simple_digest_html(string $email, array $contents): string
     }
 
     // Unsubscribe link
-    $secret = getenv('SECRET_KEY') ?: '';
+    $secret = getenv('SECRET_KEY');
+    if (!$secret) {
+        error_log('WARNING: SECRET_KEY not set for unsubscribe token generation');
+        error_response('Server configuration error', 500);
+    }
     $token = substr(hash_hmac('sha256', $email, $secret), 0, 32);
     $html .= "<hr><p style='font-size: 12px; color: #666;'>";
     $html .= "<a href='https://signal.daedalusapps.com/api/unsubscribe/$token?email=" . urlencode($email) . "'>Unsubscribe</a>";
