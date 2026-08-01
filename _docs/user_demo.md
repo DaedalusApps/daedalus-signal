@@ -160,7 +160,7 @@ For a fast demo, follow this condensed flow:
 1. **Landing Page** (30s): Show value proposition
 2. **Login** (15s): Quick authentication
 3. **Feed** (2min): Browse content, show filters and relevance scores
-4. **Sources** (1min): Add a new YouTube or GitHub source
+4. **Sources** (1min): Add a new YouTube source
 5. **Tags** (45s): Add a custom tag
 6. **Digest** (30s): Toggle email preferences
 

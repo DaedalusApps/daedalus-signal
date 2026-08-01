@@ -4,7 +4,7 @@ This guide explains how to test and demo the features.
 
 ## Prerequisites
 - Frontend running on localhost:3000 (or DreamHost)
-- API running at https://signal.daedalusapps.com/api (production) or a local PHP server
+- API running at your deployed URL (production example: `https://your-domain.com`) or a local PHP server
 - Admin account logged in
 
 ---
