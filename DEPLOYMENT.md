@@ -34,23 +34,7 @@ composer install
 
 ### 3. Configure Environment
 
-Edit `api/.htaccess` and set the environment variables:
-
-```apache
-SetEnv DB_HOST your_mysql_hostname
-SetEnv DB_NAME your_database_name
-SetEnv DB_USER your_database_user
-SetEnv DB_PASSWORD your_database_password
-SetEnv JWT_SECRET your_256_bit_random_secret
-SetEnv SECRET_KEY your_hmac_secret_for_workers
-SetEnv TURNSTILE_SECRET_KEY your_cloudflare_turnstile_key
-# Set a strong, unique admin password - there is no default credential
-SetEnv ADMIN_EMAIL your_admin_email@example.com
-SetEnv ADMIN_PASSWORD your_strong_admin_password
-# Comma-separated list of allowed CORS origins; unset = built-in defaults
-# (includes localhost dev origins). Set explicitly in production.
-SetEnv CORS_ALLOWED_ORIGINS https://your-frontend-domain.com
-```
+Copy `api/htaccess.example` to `api/.htaccess` on the server and fill in the `SetEnv` block with real values — see that file for the full variable list and what each one is for. Set a strong, unique `ADMIN_PASSWORD`; there is no default credential. Fill in real values on the `.htaccess` copy only — never edit `htaccess.example` in place on the server. Note that `htaccess.example` gets re-uploaded on every deploy (step 1 uploads `api/*`), which is why the ruleset's deny rule for `.example` files matters — it blocks web access to it regardless.
 
 ### 4. Create MySQL Database
 
@@ -129,6 +113,8 @@ The `frontend/out/.htaccess` should be uploaded for SPA routing:
 ---
 
 ## Part 3: Workers (Cron Jobs)
+
+To enable the admin dashboard's test-email feature, deploy `worker/web_shim.php` into a web-reachable docroot (e.g. alongside the API) with the `SMTP_*`/`SECRET_KEY`/`CORS_ALLOWED_ORIGINS` `SetEnv` values — `NEXT_PUBLIC_DREAMHOST_WORKER_URL` points at it.
 
 ### 1. Upload Worker Files
 

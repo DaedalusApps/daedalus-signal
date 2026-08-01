@@ -31,15 +31,9 @@ RewriteRule ^(.*)$ api.php [QSA,L]
 </IfModule>
 
 # Block access to sensitive files
-<FilesMatch "\.(env|log)$">
+<FilesMatch "\.(env|log|example)$">
     Require all denied
 </FilesMatch>
 
-# Environment variables (copy and customize on DreamHost)
-# SetEnv DB_HOST mysql.signal.daedalusapps.com
-# SetEnv DB_NAME daedalussignal
-# SetEnv DB_USER signal_db
-# SetEnv DB_PASSWORD your_db_password
-# SetEnv JWT_SECRET your_256_bit_random_secret
-# SetEnv TURNSTILE_SECRET_KEY your_turnstile_secret
-# SetEnv SECRET_KEY your_hmac_secret
+# Environment variables: see api/htaccess.example for the full list and
+# instructions. Merge that SetEnv block into this file on the server.

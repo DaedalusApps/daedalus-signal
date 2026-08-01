@@ -1,0 +1,66 @@
+# DaedalusSignal API .htaccess (example)
+# Copy this file to .htaccess on the server and fill in real values.
+# Routes all API requests through api.php
+
+RewriteEngine On
+
+# Force HTTPS
+# RewriteCond %{HTTPS} off
+# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Pass Authorization header (Apache workaround)
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Route all requests to api.php (unless file exists)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ api.php [QSA,L]
+
+# Deny direct access to lib and routes directories
+<FilesMatch "\.(php)$">
+    <If "%{REQUEST_URI} =~ m#/(lib|routes)/#">
+        Require all denied
+    </If>
+</FilesMatch>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Block access to sensitive files
+<FilesMatch "\.(env|log|example)$">
+    Require all denied
+</FilesMatch>
+
+# Environment variables (fill in real values; also used by worker/web_shim.php
+# if it is deployed alongside the API)
+SetEnv DB_HOST your_mysql_hostname
+SetEnv DB_NAME your_database_name
+SetEnv DB_USER your_database_user
+SetEnv DB_PASSWORD your_database_password
+SetEnv JWT_SECRET your_256_bit_random_secret
+SetEnv SECRET_KEY your_hmac_secret_for_workers
+SetEnv TURNSTILE_SECRET_KEY your_cloudflare_turnstile_key
+# Required only when running seed.php (which hard-fails with a clear error
+# if these are unset). Set a strong, unique admin password - there is no
+# default credential.
+# SetEnv ADMIN_EMAIL your_admin_email@example.com
+# SetEnv ADMIN_PASSWORD your_strong_admin_password
+# Optional: enables the web-based seed.php?key= endpoint. Leave unset to
+# disable it entirely (seed.php returns 403 when SEED_KEY is empty).
+# SetEnv SEED_KEY generate_a_random_value
+# Used to build links in password-reset emails
+SetEnv FRONTEND_URL https://your-frontend-domain.com
+# Comma-separated list of allowed CORS origins; unset = built-in defaults
+# (includes localhost dev origins). Set explicitly in production.
+SetEnv CORS_ALLOWED_ORIGINS https://your-frontend-domain.com
+# SMTP settings used for outgoing email (password resets, digests, etc.)
+SetEnv SMTP_HOST mail.your-domain.com
+SetEnv SMTP_PORT 587
+SetEnv SMTP_USER your_smtp_username
+SetEnv SMTP_PASSWORD your_smtp_password
+SetEnv SMTP_FROM noreply@your-domain.com
