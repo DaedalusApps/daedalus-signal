@@ -23,35 +23,37 @@ Upload the `api/` folder to your DreamHost domain directory:
 scp -r api/* user@server.dreamhost.com:~/signal.daedalusapps.com/api/
 ```
 
-### 2. Install Dependencies
+### 2. Configure Environment
 
-SSH to DreamHost and install Composer dependencies:
+Copy `api/htaccess.example` to `api/.htaccess` on the server and fill in the `SetEnv` block with real values — see that file for the full variable list and what each one is for. Set a strong, unique `ADMIN_PASSWORD`; there is no default credential. Fill in real values on the `.htaccess` copy only — never edit `htaccess.example` in place on the server, and never commit `.htaccess` (it's git-ignored; `htaccess.example` is the only tracked copy). Note that `htaccess.example` gets re-uploaded on every deploy (step 1 uploads `api/*`), which is why the ruleset's deny rule for `.example` files matters — it blocks web access to it regardless.
 
-```bash
-cd ~/signal.daedalusapps.com/api
-composer install
-```
-
-### 3. Configure Environment
-
-Copy `api/htaccess.example` to `api/.htaccess` on the server and fill in the `SetEnv` block with real values — see that file for the full variable list and what each one is for. Set a strong, unique `ADMIN_PASSWORD`; there is no default credential. Fill in real values on the `.htaccess` copy only — never edit `htaccess.example` in place on the server. Note that `htaccess.example` gets re-uploaded on every deploy (step 1 uploads `api/*`), which is why the ruleset's deny rule for `.example` files matters — it blocks web access to it regardless.
-
-### 4. Create MySQL Database
+### 3. Create MySQL Database
 
 1. Log in to DreamHost panel
 2. Go to **MySQL Databases**
 3. Create a new database and user
 4. Note the hostname (e.g., `mysql.example.com`)
 
-### 5. Seed Database
+### 4. Apply Migrations
 
-Run the seeder to create default sources, tags, and admin user:
+Apply the schema migrations in order, e.g. via phpMyAdmin's import tool or the `mysql` CLI:
 
 ```bash
+mysql -u DB_USER -p -h mysql.example.com DB_NAME < api/migrations/000_initial_schema.sql
+mysql -u DB_USER -p -h mysql.example.com DB_NAME < api/migrations/001_password_reset_tokens.sql
+```
+
+### 5. Seed Database
+
+The CLI PHP process doesn't read Apache's `SetEnv` values from `.htaccess`, so export the same variables in the SSH session first:
+
+```bash
+export DB_HOST=mysql.example.com DB_NAME=... DB_USER=... DB_PASSWORD=...
+export ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=use-a-strong-password-here
 php ~/signal.daedalusapps.com/api/seed.php
 ```
 
-Or via web (if SEED_KEY is set):
+Or, to avoid re-exporting on the server, hit the web route instead (reads the `.htaccess`-supplied environment; requires `SEED_KEY` to be set):
 ```
 https://signal.daedalusapps.com/api/seed.php?key=YOUR_SEED_KEY
 ```
@@ -214,7 +216,7 @@ cd ~/worker
 ## Troubleshooting
 
 ### CORS Errors
-- Check `api/lib/cors.php` has correct allowed origins
+- Check `CORS_ALLOWED_ORIGINS` in `.htaccess` (`SetEnv`) has the correct allowed origins — unset falls back to built-in localhost dev defaults
 - Verify `.htaccess` is being processed
 
 ### Database Connection Errors

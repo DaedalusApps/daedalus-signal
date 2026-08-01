@@ -33,3 +33,6 @@ Thumbs.db
 
 # Production env (contains secrets)
 frontend/.env.production
+
+# API server config (contains secrets; htaccess.example is the tracked template)
+api/.htaccess
