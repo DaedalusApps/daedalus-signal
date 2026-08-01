@@ -21,6 +21,15 @@
 --   mostly have no delete rule (RESTRICT).
 -- - sources.updated_at and tags.updated_at exist here (the app writes them)
 --   but are absent from prod's schema.
+-- - sources: this file adds UNIQUE(url) + type/default-approved indexes; prod
+--   has only the PK (unique matches the code's URL-dedup behavior).
+-- - tags.category VARCHAR(100) here vs prod varchar(50).
+-- - contents.relevance_score NOT NULL DEFAULT 50 here vs prod nullable/no
+--   default.
+-- - digests: content_ids nullable + delivery_method VARCHAR(50) DEFAULT
+--   'email' here vs prod NOT NULL / varchar(20) nullable.
+-- - feedback: feedback_type/status NOT NULL with defaults here vs prod
+--   nullable/no default.
 --
 -- Index names here are table-prefixed (idx_<table>_<col>), an intentional
 -- deviation from 001_password_reset_tokens.sql's unprefixed style, chosen
