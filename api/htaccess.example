@@ -17,9 +17,9 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ api.php [QSA,L]
 
-# Deny direct access to lib and routes directories
+# Deny direct access to lib, routes, and tests directories
 <FilesMatch "\.(php)$">
-    <If "%{REQUEST_URI} =~ m#/(lib|routes)/#">
+    <If "%{REQUEST_URI} =~ m#/(lib|routes|tests)/#">
         Require all denied
     </If>
 </FilesMatch>
