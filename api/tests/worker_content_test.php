@@ -136,23 +136,26 @@ function record(string $name, bool $pass, string $detail): void
 // multi-byte UTF-8 character.
 // ---------------------------------------------------------------------
 $workerSource = file_get_contents(API_DIR . '/routes/worker.php');
+$testName = 'worker.php title/description truncation produces valid UTF-8';
 
-// Anchor on the title-truncation expression itself (unique in the
-// file, unlike the generic "$stmt->execute([" prefix which recurs
-// several times elsewhere in worker.php), then walk outward to the
-// enclosing execute([ ... ]) array literal.
-$titleMarker = "'Untitled', 0, 500, 'UTF-8')";
-$titleMarkerPos = strpos($workerSource, $titleMarker);
+// Locate the truncation expressions structurally, independent of which
+// function (substr vs mb_substr) is actually used: find the INSERT INTO
+// contents statement, then the next $stmt->execute([ ... ]) array literal
+// after it - that array's first two elements are the title/description
+// truncation expressions under test.
+$insertMarker = 'INSERT INTO contents';
+$insertPos = strpos($workerSource, $insertMarker);
 $execMarker = '$stmt->execute([';
-$execStart = $titleMarkerPos === false ? false : strripos(substr($workerSource, 0, $titleMarkerPos), $execMarker);
+$execStart = $insertPos === false ? false : strpos($workerSource, $execMarker, $insertPos);
+
 if ($execStart === false) {
-    record('worker.php title/description truncation produces valid UTF-8', false, 'could not locate the title-truncation $stmt->execute([ block in worker.php');
+    record($testName, false, 'could not locate the $stmt->execute([ block following INSERT INTO contents in worker.php');
 } else {
     $arrayStart = $execStart + strlen('$stmt->execute(');
     $closeMarker = ']);';
-    $arrayEnd = strpos($workerSource, $closeMarker, $titleMarkerPos);
+    $arrayEnd = strpos($workerSource, $closeMarker, $arrayStart);
     if ($arrayEnd === false) {
-        record('worker.php title/description truncation produces valid UTF-8', false, 'could not locate closing ]); after $stmt->execute(');
+        record($testName, false, 'could not locate closing ]); after $stmt->execute(');
     } else {
         // Includes the outer [ ... ] of the array literal passed to execute().
         $arrayLiteral = substr($workerSource, $arrayStart, $arrayEnd + 1 - $arrayStart);
@@ -168,6 +171,11 @@ if ($execStart === false) {
             'content_type' => 'article',
         ], true);
 
+        // The child emits exactly one marker-prefixed JSON line, so any
+        // stray PHP warning/notice written to stdout (e.g. an undefined
+        // array key) cannot be mistaken for the result: only a line that
+        // starts with the marker and parses as strict JSON counts.
+        $marker = 'WCT_RESULT_A:';
         $code = "<?php\n"
             . "\$item = {$itemVar};\n"
             . "\$url = 'https://example.com/x';\n"
@@ -175,21 +183,38 @@ if ($execStart === false) {
             . "\$relevance_score = 50;\n"
             . "\$published_at = null;\n"
             . "\$test_array = {$arrayLiteral};\n"
-            . "fwrite(STDOUT, base64_encode(\$test_array[0]) . \"|\" . base64_encode(\$test_array[1]));\n";
+            . "fwrite(STDOUT, " . var_export($marker, true) . " . json_encode([\n"
+            . "    'title' => base64_encode(\$test_array[0]),\n"
+            . "    'desc' => base64_encode(\$test_array[1]),\n"
+            . "]) . \"\\n\");\n";
 
         [$exit, $out, $err] = run_php_code($code);
-        $parts = explode('|', trim($out));
-        if (count($parts) !== 2) {
-            record('worker.php title/description truncation produces valid UTF-8', false, "unexpected output: " . substr($out . $err, 0, 300));
+
+        $resultLine = null;
+        foreach (explode("\n", $out) as $line) {
+            if (str_starts_with($line, $marker)) {
+                $resultLine = substr($line, strlen($marker));
+                break;
+            }
+        }
+
+        if ($resultLine === null) {
+            record($testName, false, 'extraction/execution error: no ' . $marker . ' line in output: ' . substr($out . $err, 0, 300));
         } else {
-            $titleOut = base64_decode($parts[0]);
-            $descOut = base64_decode($parts[1]);
-            $pass = mb_check_encoding($titleOut, 'UTF-8') && mb_check_encoding($descOut, 'UTF-8');
-            record(
-                'worker.php title/description truncation produces valid UTF-8',
-                $pass,
-                $pass ? '' : 'truncated title/description is NOT valid UTF-8 (byte-oriented substr split a multi-byte character)'
-            );
+            $decoded = json_decode($resultLine, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded) || !isset($decoded['title']) || !isset($decoded['desc'])) {
+                record($testName, false, 'extraction/execution error: malformed result JSON: ' . substr($resultLine, 0, 300));
+            } else {
+                $titleOut = base64_decode($decoded['title'], true);
+                $descOut = base64_decode($decoded['desc'], true);
+                $pass = $titleOut !== false && $descOut !== false
+                    && mb_check_encoding($titleOut, 'UTF-8') && mb_check_encoding($descOut, 'UTF-8');
+                record(
+                    $testName,
+                    $pass,
+                    $pass ? '' : 'truncated title/description is NOT valid UTF-8 (byte-oriented substr split a multi-byte character)'
+                );
+            }
         }
     }
 }
@@ -239,9 +264,12 @@ if ($startPos === false || $endPos === false) {
 }
 
 // ---------------------------------------------------------------------
-// Test C: content.php since-parsing must reject an invalid `since`
-// value with a 400 error_response() rather than binding a bogus
-// datetime into the SQL query.
+// Test C: content.php since-parsing must reject non-ISO-8601 `since`
+// values (including PHP's own lenient DateTime-constructor formats like
+// 'tomorrow' and '0000-00-00', which can yield a negative-year value
+// bound into SQL) with a 400 error_response(), while still accepting the
+// exact ISO-8601 shape the frontend's `Date.prototype.toISOString()`
+// produces.
 // ---------------------------------------------------------------------
 if ($startPos === false || $endPos === false) {
     record('content.php since-parsing rejects invalid since with 400', false, 'could not locate the since-parsing block in content.php');
@@ -249,24 +277,58 @@ if ($startPos === false || $endPos === false) {
     $sinceBlock = substr($contentSource, $startPos, $endPos - $startPos);
     $responsePath = var_export(API_DIR . '/lib/response.php', true);
 
-    $code = "<?php\n"
-        . "require {$responsePath};\n"
-        . "register_shutdown_function(function () { fwrite(STDOUT, '|STATUS:' . http_response_code()); });\n"
-        . "\$since = 'not-a-date';\n"
-        . "{$sinceBlock}\n"
-        . "fwrite(STDOUT, 'RESULT:' . (\$since_dt ?? 'NULL'));\n";
+    $runSince = function (string $since) use ($sinceBlock, $responsePath): string {
+        $code = "<?php\n"
+            . "require {$responsePath};\n"
+            . "register_shutdown_function(function () { fwrite(STDOUT, '|STATUS:' . http_response_code()); });\n"
+            . "\$since = " . var_export($since, true) . ";\n"
+            . "{$sinceBlock}\n"
+            . "fwrite(STDOUT, 'RESULT:' . (\$since_dt ?? 'NULL'));\n";
 
-    [$exit, $out, $err] = run_php_code($code);
-    $combined = trim($out . $err);
+        [$exit, $out, $err] = run_php_code($code);
+        return trim($out . $err);
+    };
 
-    $pass = !str_contains($combined, 'RESULT:')
-        && str_contains($combined, 'STATUS:400')
-        && str_contains($combined, '"error"');
-    record(
-        'content.php since-parsing rejects invalid since with 400',
-        $pass,
-        $pass ? '' : "expected a 400 error_response() and no since_dt binding, got: " . substr($combined, 0, 300)
-    );
+    $rejectionCases = [
+        'not-a-date' => 'not-a-date',
+        "PHP DateTime-relative 'tomorrow'" => 'tomorrow',
+        "PHP DateTime-relative 'now'" => 'now',
+        "PHP DateTime timestamp '@0'" => '@0',
+        "zero date '0000-00-00'" => '0000-00-00',
+    ];
+
+    foreach ($rejectionCases as $label => $since) {
+        $combined = $runSince($since);
+        $pass = !str_contains($combined, 'RESULT:')
+            && str_contains($combined, 'STATUS:400')
+            && str_contains($combined, '"error"');
+        record(
+            "content.php since-parsing rejects $label with 400",
+            $pass,
+            $pass ? '' : "expected a 400 error_response() and no since_dt binding, got: " . substr($combined, 0, 300)
+        );
+    }
+
+    // Happy path: the exact shape produced by the frontend's
+    // Date.prototype.toISOString() (millisecond-precision, Z-suffixed)
+    // must still be accepted.
+    $happySince = '2026-07-31T10:15:30.123Z';
+    $combined = $runSince($happySince);
+    if (!str_starts_with($combined, 'RESULT:')) {
+        record(
+            "content.php since-parsing accepts toISOString() shape ('$happySince')",
+            false,
+            "expected a since_dt value, got: " . substr($combined, 0, 300)
+        );
+    } else {
+        $sinceDt = explode('|', substr($combined, strlen('RESULT:')), 2)[0];
+        $pass = $sinceDt === '2026-07-31 10:15:30';
+        record(
+            "content.php since-parsing accepts toISOString() shape ('$happySince')",
+            $pass,
+            $pass ? '' : "expected since_dt='2026-07-31 10:15:30', got '$sinceDt'"
+        );
+    }
 }
 
 // ---------------------------------------------------------------------
