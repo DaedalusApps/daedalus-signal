@@ -141,7 +141,7 @@ $workerSource = file_get_contents(API_DIR . '/routes/worker.php');
 // file, unlike the generic "$stmt->execute([" prefix which recurs
 // several times elsewhere in worker.php), then walk outward to the
 // enclosing execute([ ... ]) array literal.
-$titleMarker = "'Untitled', 0, 500)";
+$titleMarker = "'Untitled', 0, 500, 'UTF-8')";
 $titleMarkerPos = strpos($workerSource, $titleMarker);
 $execMarker = '$stmt->execute([';
 $execStart = $titleMarkerPos === false ? false : strripos(substr($workerSource, 0, $titleMarkerPos), $execMarker);
@@ -236,6 +236,37 @@ if ($startPos === false || $endPos === false) {
             $pass ? '' : "since_dt='{$sinceDt}' is not a bare UTC 'Y-m-d H:i:s' value (MariaDB warns/truncates on offset-suffixed DATETIME comparisons)"
         );
     }
+}
+
+// ---------------------------------------------------------------------
+// Test C: content.php since-parsing must reject an invalid `since`
+// value with a 400 error_response() rather than binding a bogus
+// datetime into the SQL query.
+// ---------------------------------------------------------------------
+if ($startPos === false || $endPos === false) {
+    record('content.php since-parsing rejects invalid since with 400', false, 'could not locate the since-parsing block in content.php');
+} else {
+    $sinceBlock = substr($contentSource, $startPos, $endPos - $startPos);
+    $responsePath = var_export(API_DIR . '/lib/response.php', true);
+
+    $code = "<?php\n"
+        . "require {$responsePath};\n"
+        . "register_shutdown_function(function () { fwrite(STDOUT, '|STATUS:' . http_response_code()); });\n"
+        . "\$since = 'not-a-date';\n"
+        . "{$sinceBlock}\n"
+        . "fwrite(STDOUT, 'RESULT:' . (\$since_dt ?? 'NULL'));\n";
+
+    [$exit, $out, $err] = run_php_code($code);
+    $combined = trim($out . $err);
+
+    $pass = !str_contains($combined, 'RESULT:')
+        && str_contains($combined, 'STATUS:400')
+        && str_contains($combined, '"error"');
+    record(
+        'content.php since-parsing rejects invalid since with 400',
+        $pass,
+        $pass ? '' : "expected a 400 error_response() and no since_dt binding, got: " . substr($combined, 0, 300)
+    );
 }
 
 // ---------------------------------------------------------------------
