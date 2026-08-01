@@ -77,8 +77,11 @@ cd api
 export DB_HOST=localhost DB_NAME=daedalussignal DB_USER=root DB_PASSWORD=yourpassword
 export JWT_SECRET=$(openssl rand -hex 32)
 export SECRET_KEY=$(openssl rand -hex 32)
+export TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 php -S localhost:8000 api.php
 ```
+
+`TURNSTILE_SECRET_KEY` is unset otherwise, and `POST /auth/register` fails closed without it (see `api/lib/auth.php`); the value above is Cloudflare's public dummy secret key that always passes — use a real key in production.
 
 Note the `api.php` argument — it's used as a router script so every request (e.g. `/health`, `/auth/login`) gets dispatched through the same routing logic used in production. Without it, the built-in server 404s on anything that isn't a literal file. Verify it's working:
 
@@ -103,6 +106,7 @@ php seed.php
 cd frontend
 cp .env.example .env.local
 # set NEXT_PUBLIC_API_URL=http://localhost:8000 in .env.local
+# set NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA in .env.local
 npm install
 npm run dev
 ```
