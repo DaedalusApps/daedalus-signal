@@ -170,8 +170,13 @@ function handle_get_new_count(): void
         return;
     }
 
-    // Parse ISO timestamp
-    $since_dt = str_replace('Z', '+00:00', $since);
+    // Parse ISO timestamp and normalize to UTC (MariaDB warns/truncates
+    // on offset-suffixed values compared against a DATETIME column).
+    try {
+        $since_dt = (new DateTime($since))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+    } catch (Exception $e) {
+        error_response('Invalid since parameter', 400);
+    }
 
     $db = Database::getConnection();
     $source_ids = get_user_source_ids($db, $user_id);

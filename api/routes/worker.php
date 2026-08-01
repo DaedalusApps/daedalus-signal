@@ -162,8 +162,8 @@ function handle_worker_ingest(): void
             VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
         ");
         $stmt->execute([
-            substr($item['title'] ?? 'Untitled', 0, 500),
-            substr($item['description'] ?? '', 0, 2000),
+            mb_substr($item['title'] ?? 'Untitled', 0, 500),
+            mb_substr($item['description'] ?? '', 0, 2000),
             $url,
             $item['content_type'] ?? 'article',
             $source_id,

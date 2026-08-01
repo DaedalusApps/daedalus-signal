@@ -64,7 +64,7 @@ function run_php_code(string $phpCode, int $timeoutSeconds = 8): array
     file_put_contents($tmp, $phpCode);
 
     [$exit, $out, $err] = run_php_command(child_command($tmp, false), $timeoutSeconds);
-    if (stripos($err, 'undefined function mb_') !== false) {
+    if (stripos($out . $err, 'undefined function mb_') !== false) {
         [$exit, $out, $err] = run_php_command(child_command($tmp, true), $timeoutSeconds);
     }
 
@@ -137,14 +137,20 @@ function record(string $name, bool $pass, string $detail): void
 // ---------------------------------------------------------------------
 $workerSource = file_get_contents(API_DIR . '/routes/worker.php');
 
+// Anchor on the title-truncation expression itself (unique in the
+// file, unlike the generic "$stmt->execute([" prefix which recurs
+// several times elsewhere in worker.php), then walk outward to the
+// enclosing execute([ ... ]) array literal.
+$titleMarker = "'Untitled', 0, 500)";
+$titleMarkerPos = strpos($workerSource, $titleMarker);
 $execMarker = '$stmt->execute([';
-$execStart = strpos($workerSource, $execMarker);
+$execStart = $titleMarkerPos === false ? false : strripos(substr($workerSource, 0, $titleMarkerPos), $execMarker);
 if ($execStart === false) {
-    record('worker.php title/description truncation produces valid UTF-8', false, 'could not locate $stmt->execute([ in worker.php');
+    record('worker.php title/description truncation produces valid UTF-8', false, 'could not locate the title-truncation $stmt->execute([ block in worker.php');
 } else {
     $arrayStart = $execStart + strlen('$stmt->execute(');
     $closeMarker = ']);';
-    $arrayEnd = strpos($workerSource, $closeMarker, $arrayStart);
+    $arrayEnd = strpos($workerSource, $closeMarker, $titleMarkerPos);
     if ($arrayEnd === false) {
         record('worker.php title/description truncation produces valid UTF-8', false, 'could not locate closing ]); after $stmt->execute(');
     } else {
