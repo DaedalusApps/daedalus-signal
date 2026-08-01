@@ -22,8 +22,26 @@
  * isolated subprocess, rather than reimplementing the logic, so a fix
  * in the real file is what makes the test go green.
  *
+ * Two more checks were added for P1.9 (session timezone / published_at
+ * offset handling):
+ *
+ *   D. api/lib/database.php does not pin the MySQL session time zone.
+ *      Prod's MySQL session defaulted to SYSTEM (Pacific), so NOW() and
+ *      any date math happen in server-local time instead of UTC. This
+ *      check spins up a real scratch MariaDB via docker, connects
+ *      through the actual Database::getConnection(), and asserts
+ *      `SELECT @@session.time_zone` is '+00:00'.
+ *
+ *   E. api/routes/worker.php:157 ("Parse published_at") does
+ *      `str_replace('Z', '', $item['published_at'])`, which only
+ *      strips a literal 'Z' and passes any other offset suffix (e.g.
+ *      '+02:00') or garbage straight through into the published_at
+ *      bind value. This check extracts that block and asserts an
+ *      offset-suffixed input is UTC-normalized to a bare
+ *      'Y-m-d H:i:s' string and a garbage input becomes NULL.
+ *
  * Run: php api/tests/worker_content_test.php
- * Exits 0 if both checks pass, nonzero otherwise.
+ * Exits 0 if all checks pass, nonzero otherwise.
  */
 
 define('PHP_BIN', getenv('HARDFAIL_PHP_BIN') ?: PHP_BINARY);
@@ -327,6 +345,158 @@ if ($startPos === false || $endPos === false) {
             "content.php since-parsing accepts toISOString() shape ('$happySince')",
             $pass,
             $pass ? '' : "expected since_dt='2026-07-31 10:15:30', got '$sinceDt'"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------
+// Test D: MySQL session time zone must be pinned to UTC via
+// PDO::MYSQL_ATTR_INIT_COMMAND in api/lib/database.php, not left at
+// whatever the OS/server default is (prod was SYSTEM = Pacific).
+//
+// This spins up a real, disposable MariaDB via docker and connects
+// through the actual Database::getConnection() in a child process (env
+// vars set with putenv() before requiring database.php), rather than
+// mocking PDO, so a fix in the real file is what makes this go green.
+// ---------------------------------------------------------------------
+$testNameD = 'database.php pins session time_zone to +00:00 (real MariaDB via docker)';
+
+exec('docker version', $dockerVersionOut, $dockerVersionCode);
+if ($dockerVersionCode !== 0) {
+    record($testNameD, false, 'SKIP-WITH-FAIL-NOTE: docker is not available in this environment, so Check D could not be executed. This must not be treated as a pass.');
+} else {
+    // Remove any leftover container from a previous interrupted run.
+    exec('docker rm -f tz-check 2>&1', $rmOut, $rmCode);
+
+    exec('docker run -d --name tz-check -e MARIADB_ROOT_PASSWORD=x -e MARIADB_DATABASE=d -p 3307:3306 mariadb:11 2>&1', $runOut, $runCode);
+
+    if ($runCode !== 0) {
+        record($testNameD, false, 'SKIP-WITH-FAIL-NOTE: docker run failed to start the scratch MariaDB container: ' . implode(' ', $runOut));
+    } else {
+        // Bounded wait loop (up to ~60s) for MariaDB to accept connections.
+        $ready = false;
+        for ($i = 0; $i < 30; $i++) {
+            exec('docker exec tz-check mariadb -uroot -px -e "SELECT 1" 2>&1', $pingOut, $pingCode);
+            if ($pingCode === 0) {
+                $ready = true;
+                break;
+            }
+            usleep(2000000);
+        }
+
+        if (!$ready) {
+            record($testNameD, false, 'SKIP-WITH-FAIL-NOTE: scratch MariaDB container did not become ready within the bounded wait loop');
+        } else {
+            $markerD = 'WCT_RESULT_D:';
+            $dbPath = var_export(API_DIR . '/lib/database.php', true);
+            $codeD = "<?php\n"
+                . "putenv('DB_HOST=127.0.0.1:3307');\n"
+                . "putenv('DB_NAME=d');\n"
+                . "putenv('DB_USER=root');\n"
+                . "putenv('DB_PASSWORD=x');\n"
+                . "require {$dbPath};\n"
+                . "\$pdo = Database::getConnection();\n"
+                . "\$row = \$pdo->query('SELECT @@session.time_zone AS tz')->fetch(PDO::FETCH_ASSOC);\n"
+                . "fwrite(STDOUT, " . var_export($markerD, true) . " . json_encode(\$row));\n";
+
+            $tmpD = tempnam(sys_get_temp_dir(), 'wct_d_') . '.php';
+            file_put_contents($tmpD, $codeD);
+            // This check always needs pdo_mysql, so skip run_php_code()'s
+            // bare-first attempt and go straight to the extension-flag command.
+            [$exitD, $outD, $errD] = run_php_command(child_command($tmpD, true), 15);
+            @unlink($tmpD);
+
+            $resultLineD = null;
+            foreach (explode("\n", $outD) as $line) {
+                if (str_starts_with($line, $markerD)) {
+                    $resultLineD = substr($line, strlen($markerD));
+                    break;
+                }
+            }
+
+            if ($resultLineD === null) {
+                record($testNameD, false, 'extraction/execution error: no ' . $markerD . ' line in output: ' . substr($outD . $errD, 0, 300));
+            } else {
+                $decodedD = json_decode($resultLineD, true);
+                $tz = $decodedD['tz'] ?? null;
+                $passD = $tz === '+00:00';
+                record(
+                    $testNameD,
+                    $passD,
+                    $passD ? '' : "session time_zone is '{$tz}', expected '+00:00' (PDO::MYSQL_ATTR_INIT_COMMAND is not pinning the session to UTC)"
+                );
+            }
+        }
+
+        exec('docker rm -f tz-check 2>&1', $cleanupOut, $cleanupCode);
+    }
+}
+
+// ---------------------------------------------------------------------
+// Test E: worker.php "Parse published_at" must UTC-normalize
+// offset-suffixed input and reject unparseable input as NULL, instead
+// of str_replace('Z', '', ...) passing anything else through raw.
+// ---------------------------------------------------------------------
+$startMarkerE = '// Parse published_at';
+$endMarkerE = '$stmt = $db->prepare(';
+$startPosE = strpos($workerSource, $startMarkerE);
+$endPosE = $startPosE === false ? false : strpos($workerSource, $endMarkerE, $startPosE);
+
+if ($startPosE === false || $endPosE === false) {
+    record('worker.php published_at normalizes offset-suffixed input to UTC', false, 'could not locate the published_at-parsing block in worker.php');
+    record('worker.php published_at rejects unparseable input as NULL', false, 'could not locate the published_at-parsing block in worker.php');
+} else {
+    $publishedBlock = substr($workerSource, $startPosE, $endPosE - $startPosE);
+    $markerE = 'WCT_RESULT_E:';
+
+    $runPublishedAt = function ($publishedAtValue) use ($publishedBlock, $markerE): string {
+        $itemVar = var_export(['published_at' => $publishedAtValue], true);
+        $code = "<?php\n"
+            . "\$item = {$itemVar};\n"
+            . "{$publishedBlock}\n"
+            . "fwrite(STDOUT, " . var_export($markerE, true) . " . json_encode(['published_at' => \$published_at]) . \"\\n\");\n";
+        [$exit, $out, $err] = run_php_code($code);
+        return trim($out . $err);
+    };
+
+    $extractResult = function (string $combined) use ($markerE): ?string {
+        foreach (explode("\n", $combined) as $line) {
+            if (str_starts_with($line, $markerE)) {
+                return substr($line, strlen($markerE));
+            }
+        }
+        return null;
+    };
+
+    // Offset-suffixed input: valid ISO-8601, but not what str_replace('Z', ...)
+    // handles - must not be bound raw into the published_at DATETIME column.
+    $combined = $runPublishedAt('2026-08-01T10:00:00+02:00');
+    $resultLine = $extractResult($combined);
+    if ($resultLine === null) {
+        record('worker.php published_at normalizes offset-suffixed input to UTC', false, 'extraction/execution error: no ' . $markerE . ' line in output: ' . substr($combined, 0, 300));
+    } else {
+        $decoded = json_decode($resultLine, true);
+        $publishedAtOut = $decoded['published_at'] ?? '<missing>';
+        $pass = $publishedAtOut === '2026-08-01 08:00:00';
+        record(
+            'worker.php published_at normalizes offset-suffixed input to UTC',
+            $pass,
+            $pass ? '' : "published_at='{$publishedAtOut}', expected '2026-08-01 08:00:00' (offset-suffixed value must be UTC-normalized, not passed through raw)"
+        );
+    }
+
+    // Garbage input must not be silently bound into the DATETIME column.
+    $combined = $runPublishedAt('not-a-real-timestamp');
+    $resultLine = $extractResult($combined);
+    if ($resultLine === null) {
+        record('worker.php published_at rejects unparseable input as NULL', false, 'extraction/execution error: no ' . $markerE . ' line in output: ' . substr($combined, 0, 300));
+    } else {
+        $decoded = json_decode($resultLine, true);
+        $pass = is_array($decoded) && array_key_exists('published_at', $decoded) && $decoded['published_at'] === null;
+        record(
+            'worker.php published_at rejects unparseable input as NULL',
+            $pass,
+            $pass ? '' : 'expected published_at=NULL for unparseable input, got: ' . substr($resultLine, 0, 300)
         );
     }
 }
