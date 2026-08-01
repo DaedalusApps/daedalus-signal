@@ -234,75 +234,75 @@ record(
     "output=" . substr($combined, 0, 200)
 );
 
-// ---------------------------------------------------------------------
-// 5. unsubscribe.php HMAC must not fall back to '' when its secret env
-//    var is unset. Tested via an include harness that pulls the real
-//    generate_unsubscribe_token()/verify_unsubscribe_token() function
-//    bodies out of the route file (which has request-dispatch side
-//    effects at the top level that make it unsafe to `require` directly
-//    in a CLI harness) without executing the routing/DB code.
-// ---------------------------------------------------------------------
-$unsubSource = file_get_contents(API_DIR . '/routes/unsubscribe.php');
-$marker = 'function generate_unsubscribe_token';
-$markerPos = strpos($unsubSource, $marker);
-if ($markerPos === false) {
-    record('unsubscribe.php HMAC fails closed without its secret', false, 'could not locate generate_unsubscribe_token() in source');
-} else {
-    $functionsSource = substr($unsubSource, $markerPos);
+/**
+ * Shared harness for checks #5 and #6: both pull a real HMAC-generating
+ * function's body out of a route file (which has request-dispatch side
+ * effects at the top level that make it unsafe to `require` directly in
+ * a CLI harness) without executing the routing/DB code, then invoke it
+ * and assert it does NOT fall back to '' when its secret env var is
+ * unset.
+ *
+ * Fail-open behaviour computes and prints a real HMAC/token.
+ * Fail-closed behaviour must error out (e.g. via error_response(), a
+ * 500 JSON body, or a thrown exception) before one is printed.
+ */
+function check_fails_closed_extracting_function(
+    string $sourceFile,
+    string $marker,
+    string $callCode,
+    string $forbiddenPrefix,
+    string $checkName,
+    bool $trimToBody = false
+): void {
+    $source = file_get_contents($sourceFile);
+    $markerPos = strpos($source, $marker);
+    if ($markerPos === false) {
+        record($checkName, false, "could not locate {$marker}() in source");
+        return;
+    }
+
+    $functionsSource = substr($source, $markerPos);
+    if ($trimToBody) {
+        // Trim to just the function body so we don't drag in unrelated
+        // functions/side effects defined later in the file.
+        $endPos = strpos($functionsSource, "\n}\n");
+        if ($endPos !== false) {
+            $functionsSource = substr($functionsSource, 0, $endPos + 3);
+        }
+    }
+
     $responsePath = var_export(API_DIR . '/lib/response.php', true);
-    $code = "<?php\nrequire {$responsePath};\n{$functionsSource}\n"
-        . "\$token = generate_unsubscribe_token('test@example.com');\n"
-        . "echo 'TOKEN:' . \$token;\n";
+    $code = "<?php\nrequire {$responsePath};\n{$functionsSource}\n{$callCode}";
     [$exit, $out, $err, $timedOut] = run_php_code($code, 5);
     $combined = trim($out . $err);
-    // Fail-open behaviour computes and prints a real HMAC token.
-    // Fail-closed behaviour must error out (e.g. via error_response(), a
-    // 500 JSON body, or a thrown exception) before a token is printed.
-    $pass = !$timedOut && !str_starts_with($combined, 'TOKEN:');
-    record(
-        'unsubscribe.php HMAC fails closed without its secret env var',
-        $pass,
-        "output=" . substr($combined, 0, 200)
-    );
+    $pass = !$timedOut && !str_starts_with($combined, $forbiddenPrefix);
+    record($checkName, $pass, "output=" . substr($combined, 0, 200));
 }
 
 // ---------------------------------------------------------------------
-// 6. admin.php generate_hmac() must not fall back to '' when SECRET_KEY
-//    is unset. Tested the same way as check #5: pull the real
-//    generate_hmac() function body out of the route file (which has
-//    request-dispatch side effects at the top level that make it unsafe
-//    to `require` directly in a CLI harness) without executing the
-//    routing/DB code.
+// 5. unsubscribe.php HMAC must not fall back to '' when its secret env
+//    var is unset.
 // ---------------------------------------------------------------------
-$adminSource = file_get_contents(API_DIR . '/routes/admin.php');
-$marker = 'function generate_hmac';
-$markerPos = strpos($adminSource, $marker);
-if ($markerPos === false) {
-    record('admin.php generate_hmac() fails closed without its secret', false, 'could not locate generate_hmac() in source');
-} else {
-    $functionsSource = substr($adminSource, $markerPos);
-    // Trim to just the generate_hmac() function body so we don't drag in
-    // unrelated functions/side effects defined later in the file.
-    $endPos = strpos($functionsSource, "\n}\n");
-    if ($endPos !== false) {
-        $functionsSource = substr($functionsSource, 0, $endPos + 3);
-    }
-    $responsePath = var_export(API_DIR . '/lib/response.php', true);
-    $code = "<?php\nrequire {$responsePath};\n{$functionsSource}\n"
-        . "\$hmac = generate_hmac('test-payload');\n"
-        . "echo 'HMAC:' . \$hmac;\n";
-    [$exit, $out, $err, $timedOut] = run_php_code($code, 5);
-    $combined = trim($out . $err);
-    // Fail-open behaviour computes and prints a real HMAC.
-    // Fail-closed behaviour must error out (e.g. via error_response(), a
-    // 500 JSON body, or a thrown exception) before an HMAC is printed.
-    $pass = !$timedOut && !str_starts_with($combined, 'HMAC:');
-    record(
-        'admin.php generate_hmac() fails closed without SECRET_KEY',
-        $pass,
-        "output=" . substr($combined, 0, 200)
-    );
-}
+check_fails_closed_extracting_function(
+    API_DIR . '/routes/unsubscribe.php',
+    'function generate_unsubscribe_token',
+    "\$token = generate_unsubscribe_token('test@example.com');\necho 'TOKEN:' . \$token;\n",
+    'TOKEN:',
+    'unsubscribe.php HMAC fails closed without its secret env var'
+);
+
+// ---------------------------------------------------------------------
+// 6. admin.php generate_hmac() must not fall back to '' when SECRET_KEY
+//    is unset.
+// ---------------------------------------------------------------------
+check_fails_closed_extracting_function(
+    API_DIR . '/routes/admin.php',
+    'function generate_hmac',
+    "\$hmac = generate_hmac('test-payload');\necho 'HMAC:' . \$hmac;\n",
+    'HMAC:',
+    'admin.php generate_hmac() fails closed without SECRET_KEY',
+    true
+);
 
 // ---------------------------------------------------------------------
 $failures = count(array_filter($results, fn($p) => !$p));

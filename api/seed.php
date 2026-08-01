@@ -34,9 +34,8 @@ $adminPassword = getenv('ADMIN_PASSWORD') ?: '';
 
 if (!$adminEmail || !$adminPassword) {
     $error = 'ADMIN_EMAIL and ADMIN_PASSWORD environment variables must be set';
-    if (php_sapi_name() === 'cli') {
-        echo $error . "\n";
-    } else {
+    output($error);
+    if (php_sapi_name() !== 'cli') {
         http_response_code(500);
         echo json_encode(['error' => $error]);
     }
