@@ -34,7 +34,7 @@ composer install
 
 ### 3. Configure Environment
 
-Edit `api/.htaccess` and set the environment variables:
+Merge the `SetEnv` block from `api/htaccess.example` into the deployed `api/.htaccess` (or copy `htaccess.example` to `.htaccess` on the server) and fill in real values:
 
 ```apache
 SetEnv DB_HOST your_mysql_hostname
@@ -51,6 +51,8 @@ SetEnv ADMIN_PASSWORD your_strong_admin_password
 # (includes localhost dev origins). Set explicitly in production.
 SetEnv CORS_ALLOWED_ORIGINS https://your-frontend-domain.com
 ```
+
+See `api/htaccess.example` for the complete file (rewrite rules + full `SetEnv` block, including `SEED_KEY`, `FRONTEND_URL`, and `SMTP_*` variables).
 
 ### 4. Create MySQL Database
 
