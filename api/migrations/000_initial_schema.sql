@@ -8,6 +8,10 @@
 --   mysqldump --no-data daedalussignal
 --
 -- Run this BEFORE 001_password_reset_tokens.sql (which FKs to users(id)).
+--
+-- Index names here are table-prefixed (idx_<table>_<col>), an intentional
+-- deviation from 001_password_reset_tokens.sql's unprefixed style, chosen
+-- to keep names unique across tables.
 
 -- Registered accounts (auth, digest preferences, admin flag)
 CREATE TABLE IF NOT EXISTS users (
