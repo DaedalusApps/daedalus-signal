@@ -23,6 +23,8 @@ Upload the `api/` folder to your DreamHost domain directory:
 scp -r api/* user@server.dreamhost.com:~/signal.daedalusapps.com/api/
 ```
 
+`api/tests/` need not (and should not) be uploaded — it's a CLI-only test harness with no purpose on the server.
+
 ### 2. Configure Environment
 
 Copy `api/htaccess.example` to `api/.htaccess` on the server and fill in the `SetEnv` block with real values — see that file for the full variable list and what each one is for. Set a strong, unique `ADMIN_PASSWORD`; there is no default credential. Fill in real values on the `.htaccess` copy only — never edit `htaccess.example` in place on the server, and never commit `.htaccess` (it's git-ignored; `htaccess.example` is the only tracked copy). Note that `htaccess.example` gets re-uploaded on every deploy (step 1 uploads `api/*`), which is why the ruleset's deny rule for `.example` files matters — it blocks web access to it regardless.

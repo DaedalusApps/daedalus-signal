@@ -1,4 +1,13 @@
 <?php
+// CLI-only: refuse to run under a web SAPI (defense-in-depth alongside the
+// api/htaccess.example deny rule for tests/ - see P1.11). Child php
+// subprocesses spawned by this harness run under the same CLI binary, so
+// this guard does not affect them.
+if (php_sapi_name() !== 'cli') {
+    http_response_code(403);
+    exit;
+}
+
 /**
  * Hard-fail harness for P1.1 Security hardening.
  *
