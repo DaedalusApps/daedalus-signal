@@ -10,10 +10,8 @@
  */
 
 // Configuration
-$ALLOWED_ORIGINS = [
-    'https://signal.daedalusapps.com',
-    'http://localhost:3000',  // For local development
-];
+$default_origins = 'https://signal.daedalusapps.com,http://localhost:3000';
+$ALLOWED_ORIGINS = array_filter(array_map('trim', explode(',', getenv('CORS_ALLOWED_ORIGINS') ?: $default_origins)));
 
 // Get origin and validate
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';

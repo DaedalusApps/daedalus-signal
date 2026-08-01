@@ -28,9 +28,8 @@ function verify_turnstile(string $token): bool
     $secret = getenv('TURNSTILE_SECRET_KEY');
 
     if (!$secret) {
-        // Skip verification if not configured (development mode)
-        error_log("Warning: Turnstile not configured, skipping verification");
-        return true;
+        error_log("CRITICAL: TURNSTILE_SECRET_KEY not set, failing verification closed");
+        return false;
     }
 
     if (empty($token)) {

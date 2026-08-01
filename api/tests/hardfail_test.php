@@ -197,12 +197,12 @@ try {
 }
 PHP;
 [$exit, $out, $err, $timedOut] = run_php_code($code, 5);
-$combined = trim($out . $err);
-$pass = !$timedOut && ($combined === 'false' || str_starts_with($combined, 'THROWN:'));
+$stdout = trim($out);
+$pass = !$timedOut && ($stdout === 'false' || str_starts_with($stdout, 'THROWN:'));
 record(
     'verify_turnstile() fails closed without TURNSTILE_SECRET_KEY',
     $pass,
-    "output=" . substr($combined, 0, 200)
+    "output=" . substr(trim($out . $err), 0, 200)
 );
 
 // ---------------------------------------------------------------------

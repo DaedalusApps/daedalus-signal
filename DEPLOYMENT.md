@@ -44,8 +44,9 @@ SetEnv DB_PASSWORD your_database_password
 SetEnv JWT_SECRET your_256_bit_random_secret
 SetEnv SECRET_KEY your_hmac_secret_for_workers
 SetEnv TURNSTILE_SECRET_KEY your_cloudflare_turnstile_key
-SetEnv ADMIN_EMAIL admin@daedalusapps.com
-SetEnv ADMIN_PASSWORD your_admin_password
+# Set a strong, unique admin password - there is no default credential
+SetEnv ADMIN_EMAIL your_admin_email@example.com
+SetEnv ADMIN_PASSWORD your_strong_admin_password
 ```
 
 ### 4. Create MySQL Database

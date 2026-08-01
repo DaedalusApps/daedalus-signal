@@ -29,8 +29,19 @@ if (php_sapi_name() !== 'cli') {
 require_once __DIR__ . '/lib/database.php';
 
 // Configuration
-$adminEmail = getenv('ADMIN_EMAIL') ?: 'admin@daedalusapps.com';
-$adminPassword = getenv('ADMIN_PASSWORD') ?: 'changeme123';
+$adminEmail = getenv('ADMIN_EMAIL') ?: '';
+$adminPassword = getenv('ADMIN_PASSWORD') ?: '';
+
+if (!$adminEmail || !$adminPassword) {
+    $error = 'ADMIN_EMAIL and ADMIN_PASSWORD environment variables must be set';
+    if (php_sapi_name() === 'cli') {
+        echo $error . "\n";
+    } else {
+        http_response_code(500);
+        echo json_encode(['error' => $error]);
+    }
+    exit(1);
+}
 
 // Default sources from defaults.md
 $defaultSources = [

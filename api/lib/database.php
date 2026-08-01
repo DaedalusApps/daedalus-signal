@@ -11,10 +11,14 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$pdo === null) {
-            $host = getenv('DB_HOST') ?: 'mysql.signal.daedalusapps.com';
-            $name = getenv('DB_NAME') ?: 'daedalussignal';
-            $user = getenv('DB_USER') ?: 'signal_db';
+            $host = getenv('DB_HOST') ?: '';
+            $name = getenv('DB_NAME') ?: '';
+            $user = getenv('DB_USER') ?: '';
             $pass = getenv('DB_PASSWORD') ?: '';
+
+            if (!$host || !$name || !$user) {
+                throw new RuntimeException('DB_HOST, DB_NAME, and DB_USER environment variables must be set');
+            }
 
             self::$pdo = new PDO(
                 "mysql:host={$host};dbname={$name};charset=utf8mb4",
