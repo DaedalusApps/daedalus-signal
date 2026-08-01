@@ -4,10 +4,10 @@ A self-hosted content aggregator that scrapes YouTube and X (via Nitter), lets e
 
 ## Features
 - Aggregates content from YouTube and X (Twitter, via Nitter scraping)
-- Per-user sources (10) and tags (20), with a personalized feed
+- Per-user sources (20) and tags (50), with a personalized feed
 - Daily email digest (opt-out available)
 - Admin dashboard for managing default sources/tags and approving user submissions
-- Keyword-based relevance filtering (content below a relevance threshold is dropped; there is no semantic/ML scoring — see [Architecture](#architecture))
+- Optional per-item relevance scoring on ingestion (items scoring below 10 are dropped); the bundled scrapers don't currently produce scores, so no filtering happens in practice — see [Architecture](#architecture)
 
 ## Architecture
 
@@ -18,13 +18,13 @@ A self-hosted content aggregator that scrapes YouTube and X (via Nitter), lets e
 | Workers | Python (cron jobs) | Content scraping & email delivery |
 | Database | MySQL | DreamHost MySQL |
 
-The worker's ingestion route (`api/routes/worker.php`) accepts a `relevance_score` per item and defaults it to `50` when the scraper doesn't supply one — filtering is keyword/heuristic, not semantic.
+The worker's ingestion route (`api/routes/worker.php`) accepts an optional `relevance_score` per item and drops items scoring below `10`; a missing score defaults to `50` (passes the filter). The bundled scrapers don't currently compute a score, so nothing is filtered in practice today.
 
 Scrapers rotate user-agent strings when polling YouTube and Nitter to avoid aggressive rate limiting. This is ToS-adjacent scraping behavior, stated here openly.
 
 ## Environment Variables
 
-- **API**: all API environment variables (DB credentials, `JWT_SECRET`, `SECRET_KEY`, CORS, SMTP, admin seed credentials, etc.) are documented in [`api/htaccess.example`](api/htaccess.example) — that file is the single source of truth; copy it to `api/.htaccess` and fill in real values.
+- **API**: all API environment variables (DB credentials, `JWT_SECRET`, `SECRET_KEY`, CORS, SMTP, admin seed credentials, etc.) are documented in [`api/htaccess.example`](api/htaccess.example) — that file is the single source of truth and the only copy tracked in this repo. Copy it to `api/.htaccess` (untracked, git-ignored) and fill in real values there — never commit real values.
 - **Workers**: see [`worker/.env.example`](worker/.env.example) for the Python worker's configuration (API URL, shared `SECRET_KEY`, SMTP settings).
 - **Frontend** (`frontend/.env.local` for dev, `.env.production` for builds):
 
@@ -37,6 +37,8 @@ Scrapers rotate user-agent strings when polling YouTube and Nitter to avoid aggr
 ## Quick Start (Local Development)
 
 This sets up a local database and API — it never touches the production DreamHost environment.
+
+Commands below assume a bash shell (Git Bash or WSL on Windows).
 
 ### Prerequisites
 - PHP 8+
@@ -90,9 +92,10 @@ curl http://localhost:8000/health
 # {"status":"ok","timestamp":"..."}
 ```
 
-Seed the database with default sources, tags, and an admin user (still in the `api/` directory, with the env vars above still exported):
+`php -S` above blocks the terminal, so seed from a **second terminal**. The seeder is a separate CLI process and does not inherit the first terminal's exports, so re-export `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` (from the block above) there too, along with the admin credentials, before running it (still in the `api/` directory):
 
 ```bash
+export DB_HOST=localhost DB_NAME=daedalussignal DB_USER=root DB_PASSWORD=yourpassword
 export ADMIN_EMAIL=you@example.com
 export ADMIN_PASSWORD=use-a-strong-password-here
 php seed.php
