@@ -1,10 +1,11 @@
 import { getAuthHeaders, setToken, clearToken } from './auth';
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 if (process.env.NODE_ENV !== 'production' && !process.env.NEXT_PUBLIC_API_URL) {
     console.warn(
-        'NEXT_PUBLIC_API_URL is not set — falling back to the PRODUCTION API (https://signal.daedalusapps.com). ' +
+        'NEXT_PUBLIC_API_URL is not set — API requests will go to the same origin, ' +
+        'which in `next dev` means localhost:3000 and will fail. ' +
         'Set NEXT_PUBLIC_API_URL in .env.local to point at a local API server.'
     );
 }
