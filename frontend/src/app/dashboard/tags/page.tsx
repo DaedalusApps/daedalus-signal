@@ -7,6 +7,8 @@ import styles from '../dashboard.module.css';
 import pageStyles from './tags.module.css';
 import { API_BASE } from '@/lib/api';
 
+const MAX_TAGS = 50;
+
 interface Tag {
     id: number;
     name: string;
@@ -112,7 +114,7 @@ export default function TagsPage() {
                 <header className={styles.header}>
                     <div>
                         <h1>Tags</h1>
-                        <p>Keywords used to filter and score content (max 20)</p>
+                        <p>Keywords to personalize your feed (max {MAX_TAGS})</p>
                     </div>
                 </header>
 
@@ -127,7 +129,7 @@ export default function TagsPage() {
                         <button
                             type="submit"
                             className="btn btn-primary"
-                            disabled={tags.length >= 20}
+                            disabled={tags.length >= MAX_TAGS}
                         >
                             Add Tag
                         </button>
@@ -136,9 +138,9 @@ export default function TagsPage() {
                 </div>
 
                 <section className={pageStyles.section}>
-                    <h2>Your Tags ({tags.length}/20)</h2>
+                    <h2>Your Tags ({tags.length}/{MAX_TAGS})</h2>
                     {tags.length === 0 ? (
-                        <p className={pageStyles.empty}>No tags added. Add tags to filter content.</p>
+                        <p className={pageStyles.empty}>No tags added. Add tags to personalize your feed.</p>
                     ) : (
                         <div className={pageStyles.tagGrid}>
                             {tags.map((tag) => (
@@ -162,7 +164,7 @@ export default function TagsPage() {
                                     key={tag.id}
                                     className={pageStyles.suggestedTag}
                                     onClick={() => addDefaultTag(tag)}
-                                    disabled={tags.length >= 20}
+                                    disabled={tags.length >= MAX_TAGS}
                                 >
                                     <span>#{tag.name}</span>
                                     <span className={pageStyles.plus}>+</span>

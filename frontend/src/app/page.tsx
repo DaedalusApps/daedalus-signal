@@ -184,12 +184,12 @@ export default function Home() {
 
                     <div className={styles.features}>
                         <div className={styles.feature}>
-                            <span className={styles.featureIcon}>🎯</span>
-                            <span>Keyword Filtering</span>
+                            <span className={styles.featureIcon}>🗂️</span>
+                            <span>Curated Sources</span>
                         </div>
                         <div className={styles.feature}>
-                            <span className={styles.featureIcon}>📊</span>
-                            <span>Relevance Scoring</span>
+                            <span className={styles.featureIcon}>📰</span>
+                            <span>Personalized Feed</span>
                         </div>
                         <div className={styles.feature}>
                             <span className={styles.featureIcon}>📧</span>
