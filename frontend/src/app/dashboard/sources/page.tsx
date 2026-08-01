@@ -7,6 +7,8 @@ import styles from '../dashboard.module.css';
 import pageStyles from './sources.module.css';
 import { API_BASE } from '@/lib/api';
 
+const MAX_SOURCES = 20;
+
 interface Source {
     id: number;
     name: string;
@@ -128,7 +130,7 @@ export default function SourcesPage() {
                 <header className={styles.header}>
                     <div>
                         <h1>Sources</h1>
-                        <p>Manage your content sources (max 10)</p>
+                        <p>Manage your content sources (max {MAX_SOURCES})</p>
                     </div>
                     <button className="btn btn-primary" onClick={() => setShowAdd(!showAdd)}>
                         {showAdd ? 'Cancel' : '+ Add Source'}
@@ -194,7 +196,7 @@ export default function SourcesPage() {
                 )}
 
                 <section className={pageStyles.section}>
-                    <h2>Your Sources ({sources.length}/10)</h2>
+                    <h2>Your Sources ({sources.length}/{MAX_SOURCES})</h2>
                     {sources.length === 0 ? (
                         <p className={pageStyles.empty}>No sources added yet.</p>
                     ) : (
@@ -237,7 +239,7 @@ export default function SourcesPage() {
                                     <button
                                         className="btn btn-secondary"
                                         onClick={() => addDefault(source)}
-                                        disabled={sources.length >= 10}
+                                        disabled={sources.length >= MAX_SOURCES}
                                     >
                                         + Add
                                     </button>

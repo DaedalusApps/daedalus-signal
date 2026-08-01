@@ -139,8 +139,7 @@ export default function DigestPage() {
                 <div className={pageStyles.infoCard}>
                     <h4>What&apos;s included in your digest?</h4>
                     <ul>
-                        <li><span>📊</span> Top 10 highest-scoring content items from the past 24 hours</li>
-                        <li><span>🏷️</span> Content filtered by your selected tags</li>
+                        <li><span>📊</span> Top 10 content items from the past 24 hours</li>
                         <li><span>🔗</span> Only from your subscribed sources</li>
                         <li><span>📅</span> Delivered daily at 8:00 AM your local time</li>
                     </ul>
