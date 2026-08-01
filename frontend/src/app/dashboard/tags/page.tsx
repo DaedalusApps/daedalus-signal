@@ -114,7 +114,7 @@ export default function TagsPage() {
                 <header className={styles.header}>
                     <div>
                         <h1>Tags</h1>
-                        <p>Keywords to personalize your feed (max {MAX_TAGS})</p>
+                        <p>Topics you follow — used for future feed personalization (max {MAX_TAGS})</p>
                     </div>
                 </header>
 
@@ -140,7 +140,7 @@ export default function TagsPage() {
                 <section className={pageStyles.section}>
                     <h2>Your Tags ({tags.length}/{MAX_TAGS})</h2>
                     {tags.length === 0 ? (
-                        <p className={pageStyles.empty}>No tags added. Add tags to personalize your feed.</p>
+                        <p className={pageStyles.empty}>No tags added. Add topics you want to follow.</p>
                     ) : (
                         <div className={pageStyles.tagGrid}>
                             {tags.map((tag) => (
