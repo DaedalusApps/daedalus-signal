@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { setToken } from '@/lib/auth';
+import { API_BASE } from '@/lib/api';
 import styles from './page.module.css';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
 declare global {
@@ -53,7 +53,7 @@ export default function Home() {
     useEffect(() => {
         if (showLogin) {
             // Fire-and-forget ping to wake up the backend
-            fetch(`${API_URL}/api/health`).catch(() => { });
+            fetch(`${API_BASE}/api/health`).catch(() => { });
         }
     }, [showLogin]);
 
@@ -123,7 +123,7 @@ export default function Home() {
         }
 
         try {
-            const response = await fetch(`${API_URL}${endpoint}`, {
+            const response = await fetch(`${API_BASE}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),

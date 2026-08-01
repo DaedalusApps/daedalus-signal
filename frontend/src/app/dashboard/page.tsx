@@ -6,8 +6,7 @@ import Sidebar from '@/components/Sidebar';
 import { getAuthHeaders, isAuthenticated } from '@/lib/auth';
 import styles from './dashboard.module.css';
 import { Content } from '@/types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
+import { API_BASE } from '@/lib/api';
 
 export default function Dashboard() {
     const [content, setContent] = useState<Content[]>([]);
@@ -27,8 +26,8 @@ export default function Dashboard() {
                 const headers = getAuthHeaders();
                 // Fetch content feed and sources count in parallel
                 const [contentRes, sourcesRes] = await Promise.all([
-                    fetch(`${API_URL}/api/content/feed`, { headers }),
-                    fetch(`${API_URL}/api/sources`, { headers }),
+                    fetch(`${API_BASE}/api/content/feed`, { headers }),
+                    fetch(`${API_BASE}/api/sources`, { headers }),
                 ]);
 
                 if (contentRes.ok) {

@@ -1,6 +1,13 @@
 import { getAuthHeaders, setToken, clearToken } from './auth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
+
+if (process.env.NODE_ENV !== 'production' && !process.env.NEXT_PUBLIC_API_URL) {
+    console.warn(
+        'NEXT_PUBLIC_API_URL is not set — falling back to the PRODUCTION API (https://signal.daedalusapps.com). ' +
+        'Set NEXT_PUBLIC_API_URL in .env.local to point at a local API server.'
+    );
+}
 
 interface ApiResponse<T> {
     data?: T;

@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/hooks/useTheme';
 import { getAuthHeaders, clearToken } from '@/lib/auth';
+import { API_BASE } from '@/lib/api';
 import styles from './Sidebar.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
 
 import { User } from '@/types';
 
@@ -26,7 +25,7 @@ export default function Sidebar({ activePage }: SidebarProps) {
 
     const loadUser = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/auth/me`, {
+            const res = await fetch(`${API_BASE}/api/auth/me`, {
                 headers: getAuthHeaders(),
             });
             if (res.ok) {
@@ -51,7 +50,7 @@ export default function Sidebar({ activePage }: SidebarProps) {
         }
         try {
             const res = await fetch(
-                `${API_URL}/api/content/new-count?since=${encodeURIComponent(lastChecked)}`,
+                `${API_BASE}/api/content/new-count?since=${encodeURIComponent(lastChecked)}`,
                 { headers: getAuthHeaders() }
             );
             if (res.ok) {

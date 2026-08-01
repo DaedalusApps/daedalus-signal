@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
+import { API_BASE } from '@/lib/api';
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
@@ -20,7 +19,7 @@ export default function ForgotPasswordPage() {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+            const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),
