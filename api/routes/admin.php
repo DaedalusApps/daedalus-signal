@@ -286,8 +286,8 @@ function generate_hmac(string $data): string
 {
     $secret = getenv('SECRET_KEY');
     if (!$secret) {
-        error_log('WARNING: SECRET_KEY not set, using empty string for HMAC');
-        $secret = '';
+        error_log('WARNING: SECRET_KEY not set for admin HMAC generation');
+        error_response('Server configuration error', 500);
     }
     return hash_hmac('sha256', $data, $secret);
 }
