@@ -5,10 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { getAuthHeaders } from '@/lib/auth';
 import styles from '../dashboard.module.css';
 import pageStyles from './sources.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
-
+import { API_BASE } from '@/lib/api';
 
 interface Source {
     id: number;
@@ -35,8 +32,8 @@ export default function SourcesPage() {
         try {
             const headers = getAuthHeaders();
             const [userRes, defaultRes] = await Promise.all([
-                fetch(`${API_URL}/api/sources`, { headers }),
-                fetch(`${API_URL}/api/sources/defaults`, { headers }),
+                fetch(`${API_BASE}/api/sources`, { headers }),
+                fetch(`${API_BASE}/api/sources/defaults`, { headers }),
             ]);
 
             if (userRes.ok) {
@@ -59,7 +56,7 @@ export default function SourcesPage() {
         e.preventDefault();
         setError('');
 
-        const res = await fetch(`${API_URL}/api/sources`, {
+        const res = await fetch(`${API_BASE}/api/sources`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify(newSource),
@@ -78,7 +75,7 @@ export default function SourcesPage() {
     };
 
     const removeSource = async (id: number) => {
-        const res = await fetch(`${API_URL}/api/sources/${id}`, {
+        const res = await fetch(`${API_BASE}/api/sources/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders(),
         });
@@ -89,7 +86,7 @@ export default function SourcesPage() {
     };
 
     const addDefault = async (source: Source) => {
-        const res = await fetch(`${API_URL}/api/sources`, {
+        const res = await fetch(`${API_BASE}/api/sources`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({

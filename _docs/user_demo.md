@@ -8,7 +8,7 @@ This guide covers key user scenarios for demonstrating DaedalusSignal's features
 
 1. Start the application using `.\startup.ps1` from the `_docs` folder
 2. Access the frontend at http://localhost:3000
-3. Access the API at http://localhost:5000
+3. The frontend connects to the production API at https://signal.daedalusapps.com/api by default
 
 ---
 
@@ -38,11 +38,10 @@ This guide covers key user scenarios for demonstrating DaedalusSignal's features
 
 ### Steps
 1. Log in and navigate to **Dashboard > Sources**
-2. Add sources from different platforms:
+2. Add sources from supported platforms:
    - **YouTube**: Add a channel URL (e.g., AI/ML focused channels)
    - **X (Twitter)**: Add an account handle
-   - **GitHub**: Add a repository URL
-   - **LinkedIn**: Add a profile or company page
+   - Note: GitHub and LinkedIn are shown in the UI as disabled "future feature" options and are not currently supported
 3. Show the source limit (10 sources per user)
 4. Edit or remove an existing source
 
@@ -86,7 +85,7 @@ This guide covers key user scenarios for demonstrating DaedalusSignal's features
    - Relevance score (percentage)
    - Content type label
 3. Filter content by platform:
-   - Click "All" / "YouTube" / "X" / "GitHub" filters
+   - Click "All" / "X" / "YouTube" filters (LinkedIn/GitHub filters are shown disabled - future feature)
 4. Click on a content card to open the original source
 
 ### Demo Points
@@ -161,7 +160,7 @@ For a fast demo, follow this condensed flow:
 1. **Landing Page** (30s): Show value proposition
 2. **Login** (15s): Quick authentication
 3. **Feed** (2min): Browse content, show filters and relevance scores
-4. **Sources** (1min): Add a new YouTube or GitHub source
+4. **Sources** (1min): Add a new YouTube source
 5. **Tags** (45s): Add a custom tag
 6. **Digest** (30s): Toggle email preferences
 
@@ -187,5 +186,5 @@ For technical demos, show these API endpoints:
 |-------|----------|
 | "No content yet" in feed | Add sources and wait for ingestion (runs every 6 hours) |
 | Cannot access admin panel | Ensure user has `is_admin: true` in database |
-| API not responding | Check backend is running on port 5000 |
+| API not responding | Check `NEXT_PUBLIC_API_URL` and that the PHP API (production or a local `php -S` instance) is reachable |
 | Frontend not loading | Check frontend is running on port 3000 |

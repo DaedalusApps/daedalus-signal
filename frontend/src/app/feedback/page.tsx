@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import styles from './feedback.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_BASE } from '@/lib/api';
 
 export default function FeedbackPage() {
     const [email, setEmail] = useState('');
@@ -20,7 +19,7 @@ export default function FeedbackPage() {
         setLoading(true);
 
         try {
-            const res = await fetch(`${API_URL}/api/feedback`, {
+            const res = await fetch(`${API_BASE}/api/feedback`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, message, feedback_type: type }),

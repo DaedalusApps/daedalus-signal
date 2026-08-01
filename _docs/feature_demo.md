@@ -4,7 +4,7 @@ This guide explains how to test and demo the features.
 
 ## Prerequisites
 - Frontend running on localhost:3000 (or DreamHost)
-- API running at https://signal.daedalusapps.com/api (or local PHP)
+- API running at your deployed URL (production example: `https://your-domain.com`) or a local PHP server
 - Admin account logged in
 
 ---
@@ -31,15 +31,15 @@ This guide explains how to test and demo the features.
 **API Endpoints:**
 ```bash
 # Request reset link
-curl -X POST https://signal.daedalusapps.com/api/auth/forgot-password \
+curl -X POST https://your-domain.com/api/auth/forgot-password \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com"}'
 
 # Validate token
-curl https://signal.daedalusapps.com/api/auth/reset-password/{token}
+curl https://your-domain.com/api/auth/reset-password/{token}
 
 # Reset password
-curl -X POST https://signal.daedalusapps.com/api/auth/reset-password \
+curl -X POST https://your-domain.com/api/auth/reset-password \
   -H "Content-Type: application/json" \
   -d '{"token": "...", "password": "newpassword123"}'
 ```
@@ -111,7 +111,7 @@ location.reload();
 Currently only accessible via API:
 
 ```bash
-curl -X DELETE https://signal.daedalusapps.com/api/auth/me \
+curl -X DELETE https://your-domain.com/api/auth/me \
   -H "Authorization: Bearer your-jwt-token"
 ```
 
@@ -134,11 +134,11 @@ Unsubscribe links are included in digest emails. The URL format is:
 
 ```bash
 # Get blocklist
-curl https://signal.daedalusapps.com/api/admin/blocklist \
+curl https://your-domain.com/api/admin/blocklist \
   -H "Authorization: Bearer admin-jwt-token"
 
 # Unblock an email
-curl -X DELETE https://signal.daedalusapps.com/api/admin/blocklist/1 \
+curl -X DELETE https://your-domain.com/api/admin/blocklist/1 \
   -H "Authorization: Bearer admin-jwt-token"
 ```
 
@@ -148,10 +148,10 @@ curl -X DELETE https://signal.daedalusapps.com/api/admin/blocklist/1 \
 
 ```bash
 # Health check
-curl https://signal.daedalusapps.com/api/health
+curl https://your-domain.com/api/health
 
 # Test new-count endpoint (logged in)
-curl "https://signal.daedalusapps.com/api/content/new-count?since=2024-01-01T00:00:00Z" \
+curl "https://your-domain.com/api/content/new-count?since=2024-01-01T00:00:00Z" \
   -H "Authorization: Bearer your-jwt-token"
 ```
 

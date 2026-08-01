@@ -5,8 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { getAuthHeaders, clearToken } from '@/lib/auth';
 import styles from '../dashboard.module.css';
 import pageStyles from './digest.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_BASE } from '@/lib/api';
 
 import { User } from '@/types';
 
@@ -22,7 +21,7 @@ export default function DigestPage() {
 
     const loadUser = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/auth/me`, {
+            const res = await fetch(`${API_BASE}/api/auth/me`, {
                 headers: getAuthHeaders(),
             });
             if (res.ok) {
@@ -41,7 +40,7 @@ export default function DigestPage() {
         setSaving(true);
 
         try {
-            const res = await fetch(`${API_URL}/api/auth/me`, {
+            const res = await fetch(`${API_BASE}/api/auth/me`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({ digest_enabled: !user.digest_enabled }),
@@ -69,7 +68,7 @@ export default function DigestPage() {
 
         setDeleting(true);
         try {
-            const res = await fetch(`${API_URL}/api/auth/me`, {
+            const res = await fetch(`${API_BASE}/api/auth/me`, {
                 method: 'DELETE',
                 headers: getAuthHeaders(),
             });

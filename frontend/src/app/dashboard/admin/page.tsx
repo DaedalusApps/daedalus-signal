@@ -7,8 +7,8 @@ import { User } from '@/types';
 import { getAuthHeaders } from '@/lib/auth';
 import styles from '../dashboard.module.css';
 import pageStyles from './admin.module.css';
+import { API_BASE } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const DREAMHOST_WORKER_URL = process.env.NEXT_PUBLIC_DREAMHOST_WORKER_URL || '';
 
 interface Stats {
@@ -55,9 +55,9 @@ export default function AdminPage() {
         try {
             const headers = getAuthHeaders();
             const [statsRes, usersRes, feedbackRes] = await Promise.all([
-                fetch(`${API_URL}/api/admin/stats`, { headers }),
-                fetch(`${API_URL}/api/admin/users`, { headers }),
-                fetch(`${API_URL}/api/admin/feedback`, { headers }),
+                fetch(`${API_BASE}/api/admin/stats`, { headers }),
+                fetch(`${API_BASE}/api/admin/users`, { headers }),
+                fetch(`${API_BASE}/api/admin/feedback`, { headers }),
             ]);
 
             if (!statsRes.ok) {
@@ -93,8 +93,8 @@ export default function AdminPage() {
         try {
             // If DreamHost worker is configured, use 2-step flow
             if (DREAMHOST_WORKER_URL) {
-                // Step 1: Get signed payload from PythonAnywhere
-                const payloadRes = await fetch(`${API_URL}/api/admin/test-email-payload`, {
+                // Step 1: Get signed payload from PHP API
+                const payloadRes = await fetch(`${API_BASE}/api/admin/test-email-payload`, {
                     headers: getAuthHeaders(),
                 });
 
@@ -121,8 +121,8 @@ export default function AdminPage() {
                     setTestEmailMessage(`❌ ${dhData.error || 'DreamHost worker failed'}`);
                 }
             } else {
-                // Fallback to direct PA send if DreamHost not configured
-                const res = await fetch(`${API_URL}/api/admin/test-email`, {
+                // Fallback to direct send via PHP API if DreamHost worker not configured
+                const res = await fetch(`${API_BASE}/api/admin/test-email`, {
                     method: 'POST',
                     headers: getAuthHeaders(),
                 });
@@ -150,8 +150,8 @@ export default function AdminPage() {
                 return;
             }
 
-            // Step 1: Get signed payload from PythonAnywhere
-            const payloadRes = await fetch(`${API_URL}/api/admin/trigger-scrape-payload`, {
+            // Step 1: Get signed payload from PHP API
+            const payloadRes = await fetch(`${API_BASE}/api/admin/trigger-scrape-payload`, {
                 headers: getAuthHeaders(),
             });
 
@@ -193,8 +193,8 @@ export default function AdminPage() {
                 return;
             }
 
-            // Step 1: Get signed payload from PythonAnywhere
-            const payloadRes = await fetch(`${API_URL}/api/admin/trigger-mailer-payload`, {
+            // Step 1: Get signed payload from PHP API
+            const payloadRes = await fetch(`${API_BASE}/api/admin/trigger-mailer-payload`, {
                 headers: getAuthHeaders(),
             });
 
@@ -238,8 +238,8 @@ export default function AdminPage() {
                 return;
             }
 
-            // Step 1: Get signed payload from PythonAnywhere
-            const payloadRes = await fetch(`${API_URL}/api/admin/get-logs-payload?log_type=${type}`, {
+            // Step 1: Get signed payload from PHP API
+            const payloadRes = await fetch(`${API_BASE}/api/admin/get-logs-payload?log_type=${type}`, {
                 headers: getAuthHeaders(),
             });
 
@@ -277,7 +277,7 @@ export default function AdminPage() {
             return;
         }
         try {
-            const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+            const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders(),
             });

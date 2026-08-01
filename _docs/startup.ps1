@@ -1,4 +1,5 @@
 # DaedalusSignal Startup Script
+# Windows-only (PowerShell)
 # Starts the frontend development server
 
 $projectRoot = Split-Path -Parent $PSScriptRoot

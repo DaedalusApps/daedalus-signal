@@ -4,8 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from '../forgot-password/page.module.css';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_BASE } from '@/lib/api';
 
 function ResetPasswordForm() {
     const searchParams = useSearchParams();
@@ -30,7 +29,7 @@ function ResetPasswordForm() {
         // Validate the token
         const validateToken = async () => {
             try {
-                const response = await fetch(`${API_URL}/api/auth/reset-password/${token}`, {
+                const response = await fetch(`${API_BASE}/api/auth/reset-password/${token}`, {
                     method: 'GET',
                 });
                 const data = await response.json();
@@ -65,7 +64,7 @@ function ResetPasswordForm() {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/api/auth/reset-password`, {
+            const response = await fetch(`${API_BASE}/api/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, password }),

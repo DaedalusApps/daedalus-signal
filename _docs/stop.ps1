@@ -1,4 +1,5 @@
 # DaedalusSignal Stop Script
+# Windows-only (PowerShell, uses Get-NetTCPConnection)
 # Stops frontend (port 3000) process
 
 Write-Host "Stopping DaedalusSignal services..." -ForegroundColor Cyan
