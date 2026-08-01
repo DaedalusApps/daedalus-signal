@@ -151,10 +151,41 @@ function handle_worker_ingest(): void
             continue;
         }
 
-        // Parse published_at
+        // Parse published_at and normalize to UTC (MariaDB warns/truncates
+        // on offset-suffixed values bound into a DATETIME column). Strict
+        // RFC3339/ISO-8601 parsing, same technique as content.php's
+        // `since` handling, plus bare naive-datetime formats (no offset)
+        // since the Python scraper sends naive UTC strings. Tolerant
+        // per-item: an unparseable value must not abort the whole batch.
         $published_at = null;
         if (!empty($item['published_at'])) {
-            $published_at = str_replace('Z', '', $item['published_at']);
+            $raw = $item['published_at'];
+            $parsed = null;
+            foreach ([DateTimeInterface::RFC3339_EXTENDED, DateTimeInterface::RFC3339] as $format) {
+                $attempt = DateTimeImmutable::createFromFormat($format, $raw);
+                $errors = DateTimeImmutable::getLastErrors();
+                $invalid = $errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0);
+                if ($attempt !== false && !$invalid) {
+                    $parsed = $attempt->setTimezone(new DateTimeZone('UTC'));
+                    break;
+                }
+            }
+            if ($parsed === null) {
+                foreach (['Y-m-d\TH:i:s', 'Y-m-d H:i:s'] as $format) {
+                    $attempt = DateTimeImmutable::createFromFormat($format, $raw, new DateTimeZone('UTC'));
+                    $errors = DateTimeImmutable::getLastErrors();
+                    $invalid = $errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0);
+                    if ($attempt !== false && !$invalid) {
+                        $parsed = $attempt;
+                        break;
+                    }
+                }
+            }
+            if ($parsed !== null) {
+                $published_at = $parsed->format('Y-m-d H:i:s');
+            } else {
+                error_log("worker ingest: unparseable published_at '{$raw}', storing NULL");
+            }
         }
 
         $stmt = $db->prepare("
