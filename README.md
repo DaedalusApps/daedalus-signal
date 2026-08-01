@@ -81,4 +81,4 @@ php api/seed.php
 ```
 
 ## License
-MIT
+[MIT](LICENSE)
