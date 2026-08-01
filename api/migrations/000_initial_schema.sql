@@ -4,15 +4,23 @@
 -- migrations) was deleted before the DreamHost PHP API took over. This file
 -- was rebuilt by reading every route in api/routes/, api/lib/, and
 -- api/seed.php and inferring columns/types/constraints from how PDO queries
--- use them. Diff against production before relying on it, e.g.:
---   mysqldump --no-data daedalussignal
+-- use them.
 --
 -- Run this BEFORE 001_password_reset_tokens.sql (which FKs to users(id)).
 --
--- sources.is_approved DEFAULT 0 is also an inferred default that changes
--- runtime behavior (user-added sources need admin approval before scraping);
--- check it in the prod-schema diff too, alongside the verification_codes
--- disclosure below.
+-- Verified against production dump 2026-08-01. Intentional deltas vs prod:
+-- - utf8mb4 here vs prod's utf8mb3 (prod can't store emoji; separate
+--   maintenance task to convert prod, tracked outside this migration).
+-- - Boolean columns (is_admin, is_active, email_verified, digest_enabled,
+--   onboarding_complete, is_default, is_approved) are NOT NULL with defaults
+--   here; prod has them nullable with no default (a known prod bug that
+--   leaves new registrations with NULL is_active/digest_enabled).
+-- - created_at/updated_at DEFAULT CURRENT_TIMESTAMP (and ON UPDATE) here;
+--   prod mostly lacks these defaults, relying on the app to set them.
+-- - FK ON DELETE rules (CASCADE/SET NULL) are explicit here; prod's FKs
+--   mostly have no delete rule (RESTRICT).
+-- - sources.updated_at and tags.updated_at exist here (the app writes them)
+--   but are absent from prod's schema.
 --
 -- Index names here are table-prefixed (idx_<table>_<col>), an intentional
 -- deviation from 001_password_reset_tokens.sql's unprefixed style, chosen
@@ -69,18 +77,32 @@ CREATE TABLE IF NOT EXISTS contents (
     source_id INT NOT NULL,
     title VARCHAR(500) NOT NULL,
     description TEXT,
-    url VARCHAR(1000) NOT NULL,
+    url VARCHAR(500) NOT NULL,
     content_type VARCHAR(50) NOT NULL DEFAULT 'article',
     relevance_score INT NOT NULL DEFAULT 50,
     published_at DATETIME DEFAULT NULL,
     scraped_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE CASCADE,
-    -- Non-unique: dedup is enforced in PHP on full-URL equality (worker.php:139);
-    -- a prefix UNIQUE would reject distinct URLs sharing a 255-char prefix.
-    INDEX idx_contents_url (url(255)),
+    -- Full-column UNIQUE (matches prod): dedup is also enforced in PHP on
+    -- full-URL equality (worker.php:139) as the first line of defense, but
+    -- at 500 chars there's no prefix-collision wedge, so the DB constraint
+    -- is safe to make unique across the whole column.
+    UNIQUE INDEX idx_contents_url (url),
     INDEX idx_contents_source_relevance (source_id, relevance_score),
     INDEX idx_contents_scraped_at (scraped_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Join table: which tags apply to each piece of content (Flask-era table,
+-- not referenced by current PHP routes, but present in production)
+CREATE TABLE IF NOT EXISTS content_tags (
+    content_id INT NOT NULL,
+    tag_id INT NOT NULL,
+
+    PRIMARY KEY (content_id, tag_id),
+    FOREIGN KEY (content_id) REFERENCES contents(id),
+    FOREIGN KEY (tag_id) REFERENCES tags(id),
+    INDEX idx_content_tags_tag_id (tag_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Join table: which sources each user follows
@@ -142,23 +164,23 @@ CREATE TABLE IF NOT EXISTS email_blocklist (
     UNIQUE INDEX idx_email_blocklist_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Email verification codes (e.g. sign-up confirmation)
--- NOTE: inferred table. Current api/routes only DELETE FROM verification_codes
--- (account deletion cleanup in auth.php/admin.php); no route in this codebase
--- reads or inserts into it. The frontend (frontend/src/lib/api.ts) calls
--- /api/auth/verify-email and /api/auth/resend-verification, but those routes
--- do not exist in api/routes/auth.php - this looks like drift from the
--- deleted Flask backend. Columns below mirror the password_reset_tokens
--- shape (short code instead of selector/verifier) as a best guess; verify
--- against production before trusting.
+-- Email verification codes (e.g. sign-up confirmation). Current api/routes
+-- only DELETE FROM verification_codes (account deletion cleanup in
+-- auth.php/admin.php); no route in this codebase reads or inserts into it -
+-- likely drift from the deleted Flask backend. user_id is nullable with a
+-- plain FK (no ON DELETE) per prod; account-deletion code DELETEs rows from
+-- this table before deleting the user, so no cascade is needed.
 CREATE TABLE IF NOT EXISTS verification_codes (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    code VARCHAR(10) NOT NULL,
+    user_id INT DEFAULT NULL,
+    email VARCHAR(255) NOT NULL,
+    code VARCHAR(6) NOT NULL,
+    code_type VARCHAR(20) NOT NULL,
     expires_at DATETIME NOT NULL,
-    used_at DATETIME DEFAULT NULL,
+    used TINYINT(1) DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_verification_codes_user_id (user_id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    INDEX idx_verification_codes_user_id (user_id),
+    INDEX idx_verification_codes_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
