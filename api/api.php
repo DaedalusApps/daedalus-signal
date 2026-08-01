@@ -4,6 +4,8 @@
  * Main entry point for all API requests
  */
 
+date_default_timezone_set('UTC');
+
 // Load libraries
 require_once __DIR__ . '/lib/cors.php';
 require_once __DIR__ . '/lib/response.php';
