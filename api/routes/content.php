@@ -170,8 +170,24 @@ function handle_get_new_count(): void
         return;
     }
 
-    // Parse ISO timestamp
-    $since_dt = str_replace('Z', '+00:00', $since);
+    // Parse ISO timestamp and normalize to UTC (MariaDB warns/truncates
+    // on offset-suffixed values compared against a DATETIME column).
+    // Strict RFC3339/ISO-8601 parsing only: DateTime's constructor accepts
+    // loose formats like 'tomorrow', 'now', '@0', or '0000-00-00', which
+    // can produce an out-of-range/negative-year value bound into SQL.
+    $since_dt = null;
+    foreach ([DateTimeInterface::RFC3339_EXTENDED, DateTimeInterface::RFC3339] as $format) {
+        $parsed = DateTimeImmutable::createFromFormat($format, $since);
+        $errors = DateTimeImmutable::getLastErrors();
+        $invalid = $errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0);
+        if ($parsed !== false && !$invalid) {
+            $since_dt = $parsed->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+            break;
+        }
+    }
+    if ($since_dt === null) {
+        error_response('Invalid since parameter', 400);
+    }
 
     $db = Database::getConnection();
     $source_ids = get_user_source_ids($db, $user_id);
