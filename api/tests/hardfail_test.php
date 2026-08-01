@@ -12,6 +12,7 @@
  *   3. api/lib/auth.php verify_turnstile() - TURNSTILE_SECRET_KEY
  *   4. api/lib/jwt.php                    - JWT_SECRET
  *   5. api/routes/unsubscribe.php HMAC    - SECRET_KEY
+ *   6. api/routes/admin.php generate_hmac() - SECRET_KEY
  *
  * No real database or network access is required. Run from the CLI:
  *   php api/tests/hardfail_test.php
@@ -260,6 +261,44 @@ if ($markerPos === false) {
     $pass = !$timedOut && !str_starts_with($combined, 'TOKEN:');
     record(
         'unsubscribe.php HMAC fails closed without its secret env var',
+        $pass,
+        "output=" . substr($combined, 0, 200)
+    );
+}
+
+// ---------------------------------------------------------------------
+// 6. admin.php generate_hmac() must not fall back to '' when SECRET_KEY
+//    is unset. Tested the same way as check #5: pull the real
+//    generate_hmac() function body out of the route file (which has
+//    request-dispatch side effects at the top level that make it unsafe
+//    to `require` directly in a CLI harness) without executing the
+//    routing/DB code.
+// ---------------------------------------------------------------------
+$adminSource = file_get_contents(API_DIR . '/routes/admin.php');
+$marker = 'function generate_hmac';
+$markerPos = strpos($adminSource, $marker);
+if ($markerPos === false) {
+    record('admin.php generate_hmac() fails closed without its secret', false, 'could not locate generate_hmac() in source');
+} else {
+    $functionsSource = substr($adminSource, $markerPos);
+    // Trim to just the generate_hmac() function body so we don't drag in
+    // unrelated functions/side effects defined later in the file.
+    $endPos = strpos($functionsSource, "\n}\n");
+    if ($endPos !== false) {
+        $functionsSource = substr($functionsSource, 0, $endPos + 3);
+    }
+    $responsePath = var_export(API_DIR . '/lib/response.php', true);
+    $code = "<?php\nrequire {$responsePath};\n{$functionsSource}\n"
+        . "\$hmac = generate_hmac('test-payload');\n"
+        . "echo 'HMAC:' . \$hmac;\n";
+    [$exit, $out, $err, $timedOut] = run_php_code($code, 5);
+    $combined = trim($out . $err);
+    // Fail-open behaviour computes and prints a real HMAC.
+    // Fail-closed behaviour must error out (e.g. via error_response(), a
+    // 500 JSON body, or a thrown exception) before an HMAC is printed.
+    $pass = !$timedOut && !str_starts_with($combined, 'HMAC:');
+    record(
+        'admin.php generate_hmac() fails closed without SECRET_KEY',
         $pass,
         "output=" . substr($combined, 0, 200)
     );
