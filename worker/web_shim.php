@@ -11,14 +11,16 @@
 
 // Configuration
 $default_origins = 'https://signal.daedalusapps.com,http://localhost:3000';
-$ALLOWED_ORIGINS = array_filter(array_map('trim', explode(',', getenv('CORS_ALLOWED_ORIGINS') ?: $default_origins)));
+$env = getenv('CORS_ALLOWED_ORIGINS');
+$origins_list = $env === false ? $default_origins : $env;
+$ALLOWED_ORIGINS = array_filter(array_map('trim', explode(',', $origins_list)));
 
 // Get origin and validate
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, $ALLOWED_ORIGINS)) {
     header("Access-Control-Allow-Origin: $origin");
-} else {
-    header('Access-Control-Allow-Origin: https://signal.daedalusapps.com');
+} elseif (!empty($ALLOWED_ORIGINS)) {
+    header('Access-Control-Allow-Origin: ' . reset($ALLOWED_ORIGINS));
 }
 
 header('Access-Control-Allow-Methods: POST, OPTIONS');

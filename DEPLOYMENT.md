@@ -37,7 +37,7 @@ composer install
 Edit `api/.htaccess` and set the environment variables:
 
 ```apache
-SetEnv DB_HOST mysql.signal.daedalusapps.com
+SetEnv DB_HOST your_mysql_hostname
 SetEnv DB_NAME your_database_name
 SetEnv DB_USER your_database_user
 SetEnv DB_PASSWORD your_database_password
@@ -47,6 +47,9 @@ SetEnv TURNSTILE_SECRET_KEY your_cloudflare_turnstile_key
 # Set a strong, unique admin password - there is no default credential
 SetEnv ADMIN_EMAIL your_admin_email@example.com
 SetEnv ADMIN_PASSWORD your_strong_admin_password
+# Comma-separated list of allowed CORS origins; unset = built-in defaults
+# (includes localhost dev origins). Set explicitly in production.
+SetEnv CORS_ALLOWED_ORIGINS https://your-frontend-domain.com
 ```
 
 ### 4. Create MySQL Database
@@ -54,7 +57,7 @@ SetEnv ADMIN_PASSWORD your_strong_admin_password
 1. Log in to DreamHost panel
 2. Go to **MySQL Databases**
 3. Create a new database and user
-4. Note the hostname (e.g., `mysql.signal.daedalusapps.com`)
+4. Note the hostname (e.g., `mysql.example.com`)
 
 ### 5. Seed Database
 

@@ -18,7 +18,6 @@ define('REFRESH_TOKEN_EXPIRY', 604800);   // 7 days
 // Validate JWT_SECRET is set - refuse to sign/verify tokens without it
 if (!JWT_SECRET) {
     error_log('CRITICAL: JWT_SECRET environment variable not set');
-    throw new RuntimeException('JWT_SECRET environment variable must be set');
 }
 
 /**
@@ -26,6 +25,9 @@ if (!JWT_SECRET) {
  */
 function create_access_token(int $user_id, bool $is_admin = false): string
 {
+    if (!JWT_SECRET) {
+        throw new RuntimeException('JWT_SECRET environment variable must be set');
+    }
     $payload = [
         'iss' => 'api.signal.daedalusapps.com',
         'sub' => $user_id,
@@ -41,6 +43,9 @@ function create_access_token(int $user_id, bool $is_admin = false): string
  */
 function create_refresh_token(int $user_id): string
 {
+    if (!JWT_SECRET) {
+        throw new RuntimeException('JWT_SECRET environment variable must be set');
+    }
     $payload = [
         'iss' => 'api.signal.daedalusapps.com',
         'sub' => $user_id,
@@ -57,6 +62,9 @@ function create_refresh_token(int $user_id): string
  */
 function verify_access_token(string $token): ?object
 {
+    if (!JWT_SECRET) {
+        throw new RuntimeException('JWT_SECRET environment variable must be set');
+    }
     try {
         return JWT::decode($token, new Key(JWT_SECRET, JWT_ALGORITHM));
     } catch (ExpiredException $e) {

@@ -7,7 +7,9 @@
 function handle_cors(): void
 {
     $default_origins = 'https://signal.daedalusapps.com,http://localhost:3000,http://127.0.0.1:3000';
-    $allowed_origins = array_filter(array_map('trim', explode(',', getenv('CORS_ALLOWED_ORIGINS') ?: $default_origins)));
+    $env = getenv('CORS_ALLOWED_ORIGINS');
+    $list = $env === false ? $default_origins : $env;
+    $allowed_origins = array_filter(array_map('trim', explode(',', $list)));
 
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 

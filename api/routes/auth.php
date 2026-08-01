@@ -76,7 +76,7 @@ function handle_register(): void
     $turnstile_token = $data['turnstile_token'] ?? '';
 
     // Verify Turnstile CAPTCHA
-    if (getenv('TURNSTILE_SECRET_KEY') && empty($turnstile_token)) {
+    if (empty($turnstile_token)) {
         error_response('CAPTCHA verification required', 400);
     }
 
