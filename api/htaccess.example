@@ -32,7 +32,7 @@ RewriteRule ^(.*)$ api.php [QSA,L]
 </IfModule>
 
 # Block access to sensitive files
-<FilesMatch "\.(env|log)$">
+<FilesMatch "\.(env|log|example)$">
     Require all denied
 </FilesMatch>
 

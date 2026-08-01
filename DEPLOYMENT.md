@@ -34,7 +34,7 @@ composer install
 
 ### 3. Configure Environment
 
-Copy `api/htaccess.example` to `api/.htaccess` on the server and fill in the `SetEnv` block with real values — see that file for the full variable list and what each one is for. Set a strong, unique `ADMIN_PASSWORD`; there is no default credential.
+Copy `api/htaccess.example` to `api/.htaccess` on the server and fill in the `SetEnv` block with real values — see that file for the full variable list and what each one is for. Set a strong, unique `ADMIN_PASSWORD`; there is no default credential. Fill in real values on the `.htaccess` copy only — never edit `htaccess.example` in place on the server — and delete `htaccess.example` from the server once `.htaccess` is configured; it is denied by the ruleset as defense-in-depth, but don't rely on that.
 
 ### 4. Create MySQL Database
 
