@@ -502,6 +502,59 @@ if ($startPosE === false || $endPosE === false) {
 }
 
 // ---------------------------------------------------------------------
+// Test F: api.php must pin PHP's default timezone to UTC. Prod's host
+// clock is Pacific; without date_default_timezone_set('UTC') in
+// api.php, date()/strtotime() calls throughout the app (including the
+// /health timestamp and auth.php's reset-token expires_at) run in the
+// host's local timezone instead of UTC, even though the DB session is
+// now pinned UTC (Check D). This spawns a real child PHP process with
+// its ini timezone forced to America/Los_Angeles, requires the actual
+// api/api.php with a /health request, and asserts the JSON
+// `timestamp` field's UTC offset is '+00:00', not '-07:00'.
+// ---------------------------------------------------------------------
+$testNameF = "api.php pins default timezone to UTC ('/health' timestamp offset)";
+
+function child_command_tz(string $tmp, bool $withMbstringFlags, string $tz): array
+{
+    $args = [PHP_BIN, '-d', 'date.timezone=' . $tz];
+    if ($withMbstringFlags) {
+        $extDir = dirname(PHP_BIN) . DIRECTORY_SEPARATOR . 'ext';
+        array_push($args, '-d', 'extension_dir=' . $extDir, '-d', 'extension=mbstring', '-d', 'extension=pdo_mysql');
+    }
+    $args[] = $tmp;
+    return $args;
+}
+
+$apiPath = var_export(API_DIR . '/api.php', true);
+$codeF = "<?php\n"
+    . "\$_SERVER['REQUEST_URI'] = '/health';\n"
+    . "\$_SERVER['REQUEST_METHOD'] = 'GET';\n"
+    . "\$_SERVER['HTTP_ORIGIN'] = '';\n"
+    . "require {$apiPath};\n";
+
+$tmpF = tempnam(sys_get_temp_dir(), 'wct_f_') . '.php';
+file_put_contents($tmpF, $codeF);
+
+[$exitF, $outF, $errF] = run_php_command(child_command_tz($tmpF, false, 'America/Los_Angeles'), 8);
+if (stripos($outF . $errF, 'undefined function mb_') !== false) {
+    [$exitF, $outF, $errF] = run_php_command(child_command_tz($tmpF, true, 'America/Los_Angeles'), 8);
+}
+@unlink($tmpF);
+
+$decodedF = json_decode(trim($outF), true);
+if (!is_array($decodedF) || !isset($decodedF['timestamp'])) {
+    record($testNameF, false, 'no valid JSON with a timestamp field on stdout: ' . substr($outF . $errF, 0, 300));
+} else {
+    $timestampF = $decodedF['timestamp'];
+    $pass = (bool) preg_match('/\+00:00$/', $timestampF);
+    record(
+        $testNameF,
+        $pass,
+        $pass ? '' : "timestamp='{$timestampF}' does not end in '+00:00' (PHP default timezone is not pinned to UTC in api.php)"
+    );
+}
+
+// ---------------------------------------------------------------------
 $failures = count(array_filter($results, fn($p) => !$p));
 echo "\n";
 echo $failures === 0
