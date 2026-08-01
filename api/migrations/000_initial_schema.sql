@@ -9,6 +9,11 @@
 --
 -- Run this BEFORE 001_password_reset_tokens.sql (which FKs to users(id)).
 --
+-- sources.is_approved DEFAULT 0 is also an inferred default that changes
+-- runtime behavior (user-added sources need admin approval before scraping);
+-- check it in the prod-schema diff too, alongside the verification_codes
+-- disclosure below.
+--
 -- Index names here are table-prefixed (idx_<table>_<col>), an intentional
 -- deviation from 001_password_reset_tokens.sql's unprefixed style, chosen
 -- to keep names unique across tables.
@@ -71,7 +76,9 @@ CREATE TABLE IF NOT EXISTS contents (
     scraped_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE CASCADE,
-    UNIQUE INDEX idx_contents_url (url(255)),
+    -- Non-unique: dedup is enforced in PHP on full-URL equality (worker.php:139);
+    -- a prefix UNIQUE would reject distinct URLs sharing a 255-char prefix.
+    INDEX idx_contents_url (url(255)),
     INDEX idx_contents_source_relevance (source_id, relevance_score),
     INDEX idx_contents_scraped_at (scraped_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
