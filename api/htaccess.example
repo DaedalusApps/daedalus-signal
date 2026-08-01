@@ -45,11 +45,14 @@ SetEnv DB_PASSWORD your_database_password
 SetEnv JWT_SECRET your_256_bit_random_secret
 SetEnv SECRET_KEY your_hmac_secret_for_workers
 SetEnv TURNSTILE_SECRET_KEY your_cloudflare_turnstile_key
-# Set a strong, unique admin password - there is no default credential
-SetEnv ADMIN_EMAIL your_admin_email@example.com
-SetEnv ADMIN_PASSWORD your_strong_admin_password
-# Optional: enables the web-based seed.php?key= endpoint
-SetEnv SEED_KEY your_seed_key
+# Required only when running seed.php (which hard-fails with a clear error
+# if these are unset). Set a strong, unique admin password - there is no
+# default credential.
+# SetEnv ADMIN_EMAIL your_admin_email@example.com
+# SetEnv ADMIN_PASSWORD your_strong_admin_password
+# Optional: enables the web-based seed.php?key= endpoint. Leave unset to
+# disable it entirely (seed.php returns 403 when SEED_KEY is empty).
+# SetEnv SEED_KEY generate_a_random_value
 # Used to build links in password-reset emails
 SetEnv FRONTEND_URL https://your-frontend-domain.com
 # Comma-separated list of allowed CORS origins; unset = built-in defaults
