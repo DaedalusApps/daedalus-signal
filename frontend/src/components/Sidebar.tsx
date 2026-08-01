@@ -6,7 +6,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { getAuthHeaders, clearToken } from '@/lib/auth';
 import styles from './Sidebar.module.css';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
 
 import { User } from '@/types';
 

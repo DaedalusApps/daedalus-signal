@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { setToken } from '@/lib/auth';
 import styles from './page.module.css';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 
 declare global {

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');

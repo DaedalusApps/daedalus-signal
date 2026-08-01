@@ -6,7 +6,7 @@ import { getAuthHeaders } from '@/lib/auth';
 import styles from '../dashboard.module.css';
 import pageStyles from './tags.module.css';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
 
 
 

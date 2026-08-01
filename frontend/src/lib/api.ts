@@ -1,6 +1,6 @@
 import { getAuthHeaders, setToken, clearToken } from './auth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://signal.daedalusapps.com';
 
 interface ApiResponse<T> {
     data?: T;
