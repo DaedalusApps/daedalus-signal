@@ -214,7 +214,7 @@ cd ~/worker
 ## Troubleshooting
 
 ### CORS Errors
-- Check `api/lib/cors.php` has correct allowed origins
+- Check `CORS_ALLOWED_ORIGINS` in `.htaccess` (`SetEnv`) has the correct allowed origins — unset falls back to built-in localhost dev defaults
 - Verify `.htaccess` is being processed
 
 ### Database Connection Errors
